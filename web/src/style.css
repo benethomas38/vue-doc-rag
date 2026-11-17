@@ -1,0 +1,123 @@
+:root {
+  --bg: #f7f8f6;
+  --surface: #ffffff;
+  --text: #1c2420;
+  --muted: #66716b;
+  --border: #dfe4e0;
+  --accent: #42b883;        /* vert Vue */
+  --accent-strong: #2f7f5c;
+  --accent-soft: #e3f4ec;
+  --on-accent: #ffffff;
+  --code-bg: #1e2622;
+  --code-text: #e6ede9;
+  --danger: #b42318;
+  --danger-soft: #fdecea;
+  --shadow: 0 4px 20px rgb(20 40 30 / 0.06);
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #121614;
+    --surface: #1a201d;
+    --text: #e6ece8;
+    --muted: #93a099;
+    --border: #2b3430;
+    --accent: #42b883;
+    --accent-strong: #7fd6ac;
+    --accent-soft: #1c3329;
+    --on-accent: #0d1a14;
+    --code-bg: #0c0f0e;
+    --code-text: #e6ede9;
+    --danger: #ff8a7a;
+    --danger-soft: #3a1d1a;
+    --shadow: 0 4px 20px rgb(0 0 0 / 0.3);
+    color-scheme: dark;
+  }
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Contenu Markdown des réponses (généré par v-html, donc styles globaux) */
+.answer > :first-child { margin-top: 0; }
+.answer > :last-child { margin-bottom: 0; }
+.answer p,
+.answer ul,
+.answer ol { margin: 0 0 12px; }
+.answer li + li { margin-top: 4px; }
+.answer h1,
+.answer h2,
+.answer h3 { font-size: 1.05rem; margin: 20px 0 8px; }
+.answer a { color: var(--accent-strong); }
+
+.answer code {
+  font-family: "JetBrains Mono", ui-monospace, Consolas, monospace;
+  font-size: 0.86em;
+  padding: 2px 5px;
+  border-radius: 5px;
+  background: var(--accent-soft);
+}
+.answer pre {
+  margin: 0 0 12px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: var(--code-bg);
+  color: var(--code-text);
+  overflow-x: auto;
+  line-height: 1.5;
+}
+.answer pre code {
+  padding: 0;
+  background: none;
+  font-size: 0.85rem;
+}
+
+/* Citations [n] transformées en pastilles cliquables */
+.answer a.cite {
+  display: inline-grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  margin: 0 1px;
+  border-radius: 9px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-decoration: none;
+  vertical-align: super;
+  line-height: 1;
+}
+.answer a.cite:hover {
+  background: var(--accent);
+  color: var(--on-accent);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
+}

@@ -62,3 +62,35 @@ export async function ask(question: string): Promise<Answer> {
   // 3. Ne renvoyer que les sources réellement citées
   return { answer, sources: citedSources(answer, sources) };
 }
+
+export type StreamEvent =
+  | { type: "sources"; data: { sources: Source[] } }  // tous les passages envoyés à Claude
+  | { type: "delta"; data: { text: string } }         // un morceau de réponse
+  | { type: "done"; data: { sources: Source[] } };    // les sources réellement citées
+
+/** Même chose que ask(), mais la réponse arrive morceau par morceau. */
+export async function* askStream(question: string, signal?: AbortSignal): AsyncGenerator<StreamEvent> {
+  const passages = await retrieve(question);
+  const { content, sources } = buildPrompt(question, passages);
+  yield { type: "sources", data: { sources } };
+
+  const stream = client.messages.stream(
+    {
+      model: MODEL,
+      max_tokens: 1024,
+      system: SYSTEM_PROMPT,
+      messages: [{ role: "user", content }],
+    },
+    { signal },
+  );
+
+  let answer = "";
+  for await (const event of stream) {
+    if (event.type === "content_block_delta" && event.delta.type === "text_delta") {
+      answer += event.delta.text;
+      yield { type: "delta", data: { text: event.delta.text } };
+    }
+  }
+
+  yield { type: "done", data: { sources: citedSources(answer, sources) } };
+}
