@@ -12,7 +12,9 @@ WORKDIR /app
 
 # Dépendances d'abord : Docker les garde en cache tant que package*.json ne change pas
 COPY package.json package-lock.json ./
-RUN npm ci
+# Pas de carte graphique sur le serveur : on saute le téléchargement de la version CUDA
+# d'onnxruntime (le moteur du modèle d'embeddings), qui échoue sinon.
+RUN npm ci --onnxruntime-node-install-cuda=skip
 
 COPY . .
 

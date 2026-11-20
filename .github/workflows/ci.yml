@@ -18,7 +18,8 @@ jobs:
           cache: npm
 
       - name: Installer les dépendances
-        run: npm ci
+        # Pas de GPU sur GitHub Actions : on saute la version CUDA d'onnxruntime
+        run: npm ci --onnxruntime-node-install-cuda=skip
 
       - name: Vérifier les types (serveur + interface)
         run: npm run typecheck
