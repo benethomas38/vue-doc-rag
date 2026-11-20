@@ -1,0 +1,30 @@
+# Production sur le VPS : l'application + Caddy (HTTPS automatique)
+# Lancement : docker compose up -d --build
+
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    env_file: .env          # ANTHROPIC_API_KEY, limites… (jamais copié dans l'image)
+    expose:
+      - "3001"              # accessible seulement par Caddy, pas depuis Internet
+
+  caddy:
+    image: caddy:2
+    restart: unless-stopped
+    depends_on:
+      - app
+    ports:
+      - "80:80"
+      - "443:443"
+      - "443:443/udp"       # HTTP/3
+    environment:
+      DOMAIN: ${DOMAIN}     # lu dans le fichier .env
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data    # certificats HTTPS (conservés entre les redémarrages)
+      - caddy_config:/config
+
+volumes:
+  caddy_data:
+  caddy_config:

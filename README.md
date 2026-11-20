@@ -36,8 +36,11 @@ Autres commandes : `npm test`, `npm run typecheck`, `npm run build`,
 
 ## Déploiement
 
+Le site tourne sur un VPS avec Docker Compose : l'application et Caddy, qui gère le
+HTTPS automatiquement. Guide pas à pas : [DEPLOY.md](DEPLOY.md).
+
 Le `Dockerfile` construit une image unique : site buildé, serveur, index de la doc et
-modèle d'embeddings. Variables à définir chez l'hébergeur :
+modèle d'embeddings. Variables d'environnement (fichier `.env`) :
 
 | Variable | Rôle | Défaut |
 | --- | --- | --- |
@@ -45,6 +48,7 @@ modèle d'embeddings. Variables à définir chez l'hébergeur :
 | `CLAUDE_MODEL` | modèle utilisé | `claude-haiku-5-5` |
 | `RATE_LIMIT_PER_HOUR` | questions par visiteur et par heure | `10` |
 | `DAILY_LIMIT` | questions par jour, tous visiteurs | `200` |
+| `DOMAIN` | nom de domaine (production, pour Caddy) | (aucun) |
 
 La CI GitHub Actions vérifie les types, lance les tests et builde le site à chaque push.
 
