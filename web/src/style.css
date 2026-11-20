@@ -1,5 +1,7 @@
 :root {
+  --max: 1040px;
   --bg: #f7f8f6;
+  --bg-soft: #f1f3f0;
   --surface: #ffffff;
   --text: #1c2420;
   --muted: #66716b;
@@ -19,6 +21,7 @@
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #121614;
+    --bg-soft: #0f1311;
     --surface: #1a201d;
     --text: #e6ece8;
     --muted: #93a099;
@@ -50,6 +53,33 @@ body {
   font-size: 16px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
+}
+
+/* Boutons partagés par toutes les pages */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 9px 16px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-weight: 600;
+  font-size: 0.92rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: border-color 0.15s, transform 0.15s;
+}
+.btn:hover {
+  border-color: var(--accent);
+  transform: translateY(-1px);
+}
+.btn--primary {
+  border-color: var(--accent);
+  background: var(--accent);
+  color: var(--on-accent);
 }
 
 /* Contenu Markdown des réponses (généré par v-html, donc styles globaux) */

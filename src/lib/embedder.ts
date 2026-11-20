@@ -10,9 +10,18 @@ const MODEL = "Xenova/multilingual-e5-small";
 
 let extractor: FeatureExtractionPipeline | null = null;
 
+// Les types de `pipeline` sont si complexes que TypeScript abandonne
+// ("union type that is too complex to represent"). On l'appelle donc via
+// une signature simplifiée, puis on précise le type du résultat.
+const createPipeline = pipeline as unknown as (
+  task: string,
+  model: string,
+  options?: Record<string, unknown>,
+) => Promise<unknown>;
+
 async function getExtractor(): Promise<FeatureExtractionPipeline> {
   // Le modèle (~120 Mo) est téléchargé au premier lancement, puis mis en cache.
-  extractor ??= await pipeline("feature-extraction", MODEL, { dtype: "q8" });
+  extractor ??= (await createPipeline("feature-extraction", MODEL, { dtype: "q8" })) as FeatureExtractionPipeline;
   return extractor;
 }
 

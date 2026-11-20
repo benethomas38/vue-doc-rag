@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import type { Message } from "../composables/useChat";
-import { renderAnswer } from "../lib/markdown";
+import type { Message } from "../../composables/useChat";
+import { renderAnswer } from "../../lib/markdown";
 
 const props = defineProps<{ message: Message }>();
 
