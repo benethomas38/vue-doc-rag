@@ -27,4 +27,16 @@ export const projects: Project[] = [
     repo: "https://github.com/benethomas38/vue-doc-rag",
     demo: true,
   },
+  {
+    slug: "visualiseur",
+    title: "Visualiseur audio",
+    summary:
+      "Glisse n'importe quel morceau, il prend vie en temps réel : spectre circulaire, barres ou oscilloscope, " +
+      "avec une détection de beat qui fait réagir l'image au kick. Tout tourne dans le navigateur.",
+    stack: "Vue 3, TypeScript, Web Audio API, Canvas 2D",
+    year: "2026",
+    route: "/projets/visualiseur",
+    repo: "https://github.com/benethomas38/vue-doc-rag",
+    demo: true,
+  },
 ];

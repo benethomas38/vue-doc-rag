@@ -20,6 +20,12 @@ const router = createRouter({
       meta: { title: "Vue Doc Assistant" },
     },
     {
+      path: "/projets/visualiseur",
+      name: "visualiseur",
+      component: () => import("./views/VisualizerView.vue"),
+      meta: { title: "Visualiseur audio" },
+    },
+    {
       path: "/:pathMatch(.*)*",
       name: "not-found",
       component: () => import("./views/NotFoundView.vue"),
