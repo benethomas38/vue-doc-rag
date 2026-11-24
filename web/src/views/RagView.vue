@@ -1,146 +1,161 @@
 <script setup lang="ts">
 import RagChat from "../components/rag/RagChat.vue";
+import ArchitectureDiagram from "../components/rag/ArchitectureDiagram.vue";
 import { projects } from "../projects";
 
 const project = projects.find((p) => p.slug === "vue-doc-rag")!;
 
-const steps = [
-  {
-    title: "Découpage",
-    text: "La doc Vue (Markdown) est découpée par titres, sans jamais couper un bloc de code.",
-  },
-  {
-    title: "Embeddings",
-    text: "Chaque passage devient un vecteur, calculé en local avec un modèle multilingue.",
-  },
-  {
-    title: "Recherche hybride",
-    text: "Vecteurs (le sens) et BM25 (les mots exacts), fusionnés par Reciprocal Rank Fusion.",
-  },
-  {
-    title: "Génération",
-    text: "Claude répond à partir des 6 meilleurs passages, en streaming, en citant ses sources.",
-  },
+// Une vraie séquence : le trajet d'une question, dans l'ordre
+const journey = [
+  "Tu envoies ta question. Elle part en HTTPS vers benethomas.fr, que le DNS d'OVH fait pointer vers mon VPS.",
+  "Caddy, qui gère le certificat HTTPS, transmet la requête à l'application Node.js.",
+  "L'application vérifie que tu n'as pas dépassé la limite, 10 questions par heure, et que la démo n'a pas atteint ses 200 questions du jour.",
+  "La question est transformée en vecteur sur place, par un petit modèle qui tourne sur le serveur. La recherche hybride compare ce vecteur et les mots exacts aux 891 passages de la doc, et garde les 6 meilleurs.",
+  "La question et ces 6 passages partent vers l'API Claude. C'est le seul appel vers un service extérieur.",
+  "Claude rédige la réponse en citant les passages. Elle revient morceau par morceau jusqu'à ton navigateur, qui l'affiche au fil de l'eau avec les liens vers la doc.",
+];
+
+const storage = [
+  { what: "La documentation et ses vecteurs", where: "Un fichier index.json construit au déploiement, rangé dans l'image Docker et chargé en mémoire. Pas de base de données." },
+  { what: "Tes questions", where: "Nulle part. Elles traversent le serveur sans être enregistrées." },
+  { what: "Les compteurs de limites", where: "En mémoire. Ils repartent à zéro à chaque redémarrage du serveur." },
+  { what: "La clé de l'API Claude", where: "Un fichier .env sur le VPS, jamais dans le code ni sur GitHub." },
+  { what: "Le code source", where: "Public sur GitHub. Le VPS le récupère avec git pull à chaque mise à jour." },
 ];
 </script>
 
 <template>
   <nav class="crumb" aria-label="Fil d'Ariane">
-    <RouterLink to="/projets">Projets</RouterLink> <span aria-hidden="true">/</span> {{ project.title }}
+    <RouterLink to="/projets">Projets</RouterLink>
+    <span aria-hidden="true"> / </span>
+    <span>{{ project.title }}</span>
   </nav>
 
   <section class="head">
     <h1>{{ project.title }}</h1>
     <p class="lead">{{ project.summary }}</p>
-    <ul class="tags" aria-label="Technologies">
-      <li v-for="t in project.tags" :key="t">{{ t }}</li>
-    </ul>
-    <a v-if="project.repo" :href="project.repo" target="_blank" rel="noopener" class="btn">Voir le code sur GitHub</a>
+    <p class="meta">
+      {{ project.stack }}.
+      <a v-if="project.repo" :href="project.repo" target="_blank" rel="noopener">Voir le code sur GitHub</a>
+    </p>
   </section>
 
   <RagChat />
 
-  <section class="how" aria-labelledby="how-title">
-    <h2 id="how-title">Comment ça marche</h2>
-    <ol class="steps">
-      <li v-for="(s, i) in steps" :key="s.title">
-        <span class="n">{{ i + 1 }}</span>
-        <h3>{{ s.title }}</h3>
-        <p>{{ s.text }}</p>
-      </li>
-    </ol>
-    <p class="note">
-      La démo est limitée en nombre de questions par visiteur et par jour, pour maîtriser
-      les coûts de l'API.
+  <section class="section" aria-labelledby="arch-title">
+    <h2 id="arch-title">Comment ça tourne</h2>
+    <p class="intro">
+      Tout le projet tient sur un petit serveur loué chez OVH, avec deux conteneurs Docker.
+      Voici où se trouve chaque pièce, et le chemin que suit ta question.
     </p>
+    <ArchitectureDiagram />
+  </section>
+
+  <section class="section split" aria-labelledby="journey-title">
+    <div>
+      <h2 id="journey-title">Le trajet d'une question</h2>
+      <ol class="journey">
+        <li v-for="(step, i) in journey" :key="i">{{ step }}</li>
+      </ol>
+    </div>
+    <div>
+      <h2 id="storage-title">Où sont les données</h2>
+      <dl class="storage" aria-labelledby="storage-title">
+        <div v-for="s in storage" :key="s.what">
+          <dt>{{ s.what }}</dt>
+          <dd>{{ s.where }}</dd>
+        </div>
+      </dl>
+    </div>
   </section>
 </template>
 
 <style scoped>
 .crumb {
   padding-top: 28px;
-  font-size: 0.85rem;
-  color: var(--muted);
-}
-.crumb a {
-  color: var(--accent-strong);
-  text-decoration: none;
+  font-size: 15px;
 }
 .head {
-  padding: 16px 0 28px;
+  padding: 12px 0 28px;
 }
 h1 {
-  margin: 0 0 10px;
-  font-size: clamp(2rem, 5vw, 2.8rem);
-  letter-spacing: -0.03em;
+  margin: 0 0 12px;
+  font-size: clamp(44px, 8vw, 84px);
+  font-stretch: 62%;
+  font-weight: 900;
+  text-transform: uppercase;
 }
 .lead {
-  max-width: 65ch;
-  margin: 0 0 16px;
+  max-width: 62ch;
+  margin: 0 0 8px;
+  font-size: 19px;
+}
+.meta {
+  margin: 0;
   color: var(--muted);
-  font-size: 1.05rem;
+  font-size: 15px;
 }
-.tags {
-  list-style: none;
-  margin: 0 0 20px;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 6px;
+
+.section {
+  padding: 64px 0 0;
 }
-.tags li {
-  padding: 3px 9px;
-  border-radius: 999px;
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-  font-size: 0.78rem;
-  font-weight: 600;
+.section h2 {
+  margin: 0 0 12px;
+  font-size: clamp(32px, 5vw, 48px);
 }
-.how {
-  padding: 48px 0;
+.intro {
+  max-width: 62ch;
+  margin: 0 0 24px;
 }
-.how h2 {
-  margin: 0 0 20px;
-  font-size: 1.35rem;
+
+.split {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 48px;
 }
-.steps {
-  list-style: none;
+.journey {
   margin: 0;
   padding: 0;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr));
-  gap: 12px;
+  list-style: none;
+  counter-reset: step;
 }
-.steps li {
-  padding: 18px;
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--surface);
+.journey li {
+  counter-increment: step;
+  position: relative;
+  padding: 0 0 18px 44px;
 }
-.n {
+.journey li::before {
+  content: counter(step);
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--blue);
+  color: #ffffff;
+  font-weight: 800;
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
-  margin-bottom: 10px;
-  border-radius: 8px;
-  background: var(--accent-soft);
-  color: var(--accent-strong);
-  font-weight: 700;
-  font-size: 0.85rem;
 }
-.steps h3 {
-  margin: 0 0 4px;
-  font-size: 1rem;
-}
-.steps p {
+.storage {
   margin: 0;
-  color: var(--muted);
-  font-size: 0.92rem;
 }
-.note {
-  margin: 20px 0 0;
-  font-size: 0.85rem;
-  color: var(--muted);
+.storage div {
+  padding: 12px 0;
+  border-top: 1px solid var(--border);
+}
+.storage dt {
+  font-weight: 700;
+}
+.storage dd {
+  margin: 2px 0 0;
+}
+
+@media (max-width: 860px) {
+  .split {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 24px;
+  }
 }
 </style>

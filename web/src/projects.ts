@@ -7,7 +7,7 @@ export interface Project {
   slug: string;
   title: string;
   summary: string;
-  tags: string[];
+  stack: string;   // technos, en une ligne
   year: string;
   route?: string;  // page du projet sur le site
   repo?: string;   // code source
@@ -19,9 +19,9 @@ export const projects: Project[] = [
     slug: "vue-doc-rag",
     title: "Vue Doc Assistant",
     summary:
-      "Un assistant qui répond aux questions sur Vue.js à partir de la documentation officielle, " +
-      "avec les sources de chaque réponse. Recherche hybride, API Claude et réponses en streaming.",
-    tags: ["Vue 3", "TypeScript", "RAG", "API Claude", "Node.js", "Vitest"],
+      "Pose une question sur Vue.js, l'assistant cherche les bons passages dans la documentation officielle " +
+      "et Claude rédige la réponse en citant ses sources.",
+    stack: "Vue 3, TypeScript, Node.js, API Claude, Docker",
     year: "2026",
     route: "/projets/vue-doc-rag",
     repo: "https://github.com/benethomas38/vue-doc-rag",

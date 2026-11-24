@@ -42,7 +42,7 @@ watch(
 <template>
   <div class="chat">
     <div class="chat__bar">
-      <span class="chat__title"><span class="live" aria-hidden="true" />Démo en direct</span>
+      <span class="chat__title">Assistant Vue.js</span>
       <button v-if="messages.length" class="link" :disabled="loading" @click="newChat">
         Nouvelle conversation
       </button>
@@ -50,7 +50,7 @@ watch(
 
     <div ref="list" class="chat__list" aria-live="polite">
       <div v-if="!messages.length" class="empty">
-        <p>Pose une question sur Vue.js, ou essaie un exemple :</p>
+        <p>Pose une question sur Vue.js en français ou en anglais, ou pars d'un exemple :</p>
         <ul class="examples">
           <li v-for="ex in examples" :key="ex">
             <button @click="submit(ex)">{{ ex }}</button>
@@ -71,8 +71,8 @@ watch(
   display: flex;
   flex-direction: column;
   height: min(720px, calc(100dvh - 120px));
-  border: 1px solid var(--border);
-  border-radius: 18px;
+  border: 2px solid var(--ink);
+  border-radius: 6px;
   background: var(--bg-soft);
   overflow: hidden;
 }
@@ -90,12 +90,6 @@ watch(
   align-items: center;
   gap: 8px;
   font-weight: 600;
-}
-.live {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: var(--accent);
 }
 .link {
   border: 0;
@@ -142,15 +136,13 @@ watch(
   text-align: left;
   padding: 12px 14px;
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 4px;
   background: var(--surface);
   color: var(--text);
   font: inherit;
   cursor: pointer;
-  transition: border-color 0.15s, transform 0.15s;
 }
 .examples button:hover {
   border-color: var(--accent);
-  transform: translateY(-1px);
 }
 </style>

@@ -28,7 +28,7 @@ const isStreaming = computed(() => props.message.status === "streaming");
     </p>
 
     <footer v-if="message.sources.length" class="sources">
-      <h3>Sources</h3>
+      <h3>Sources dans la doc Vue</h3>
       <ul>
         <li v-for="s in message.sources" :key="s.n">
           <a :href="s.url" target="_blank" rel="noopener">
@@ -50,7 +50,7 @@ const isStreaming = computed(() => props.message.status === "streaming");
   align-self: flex-end;
   max-width: 85%;
   padding: 10px 14px;
-  border-radius: 14px 14px 4px 14px;
+  border-radius: 6px;
   background: var(--accent-soft);
   color: var(--text);
   white-space: pre-wrap;
@@ -100,11 +100,9 @@ const isStreaming = computed(() => props.message.status === "streaming");
 }
 .sources h3 {
   margin: 0 0 8px;
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  color: var(--muted);
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--text);
 }
 .sources ul {
   list-style: none;

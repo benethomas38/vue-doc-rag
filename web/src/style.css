@@ -1,42 +1,37 @@
+/*
+ * Identité visuelle : les couleurs du CV (bleu #0070C0, turquoise #49C0B2, gris #E6E7E8)
+ * et une seule famille, Archivo, dont on joue sur la largeur (étroite pour les titres).
+ */
 :root {
-  --max: 1040px;
-  --bg: #f7f8f6;
-  --bg-soft: #f1f3f0;
-  --surface: #ffffff;
-  --text: #1c2420;
-  --muted: #66716b;
-  --border: #dfe4e0;
-  --accent: #42b883;        /* vert Vue */
-  --accent-strong: #2f7f5c;
-  --accent-soft: #e3f4ec;
+  --max: 1080px;
+
+  --ink: #0a2540;          /* texte principal, bleu nuit */
+  --muted: #4a5b6c;        /* texte secondaire (7:1 sur blanc) */
+  --paper: #ffffff;
+  --gray: #e6e7e8;         /* gris du CV */
+  --blue: #0070c0;         /* bleu du CV */
+  --blue-deep: #005a9c;
+  --teal: #49c0b2;         /* turquoise du CV */
+  --teal-wash: #e4f5f2;
+
+  /* Noms utilisés par les composants du chat */
+  --bg: var(--paper);
+  --bg-soft: #f4f7f9;
+  --surface: var(--paper);
+  --text: var(--ink);
+  --border: #d5dbe0;
+  --accent: var(--blue);
+  --accent-strong: var(--blue-deep);
+  --accent-soft: var(--teal-wash);
   --on-accent: #ffffff;
-  --code-bg: #1e2622;
-  --code-text: #e6ede9;
+  --code-bg: #0a2540;
+  --code-text: #e8f0f7;
   --danger: #b42318;
   --danger-soft: #fdecea;
-  --shadow: 0 4px 20px rgb(20 40 30 / 0.06);
-  color-scheme: light;
-}
+  --shadow: none;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #121614;
-    --bg-soft: #0f1311;
-    --surface: #1a201d;
-    --text: #e6ece8;
-    --muted: #93a099;
-    --border: #2b3430;
-    --accent: #42b883;
-    --accent-strong: #7fd6ac;
-    --accent-soft: #1c3329;
-    --on-accent: #0d1a14;
-    --code-bg: #0c0f0e;
-    --code-text: #e6ede9;
-    --danger: #ff8a7a;
-    --danger-soft: #3a1d1a;
-    --shadow: 0 4px 20px rgb(0 0 0 / 0.3);
-    color-scheme: dark;
-  }
+  --font: "Archivo", system-ui, -apple-system, "Segoe UI", sans-serif;
+  color-scheme: light;
 }
 
 *,
@@ -47,42 +42,70 @@
 
 body {
   margin: 0;
-  background: var(--bg);
-  color: var(--text);
-  font-family: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
-  font-size: 16px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font);
+  font-size: 17px;
   line-height: 1.6;
   -webkit-font-smoothing: antialiased;
 }
 
-/* Boutons partagés par toutes les pages */
+h1,
+h2,
+h3 {
+  font-family: var(--font);
+  font-stretch: 75%;
+  font-weight: 800;
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  text-wrap: balance;
+}
+
+p {
+  text-wrap: pretty;
+}
+
+a {
+  color: var(--blue-deep);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+a:hover {
+  color: var(--ink);
+}
+
+/* Boutons : un plein (action principale), un contour (secondaire) */
 .btn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 9px 16px;
-  border: 1px solid var(--border);
-  border-radius: 10px;
-  background: var(--surface);
-  color: var(--text);
+  min-height: 46px;
+  padding: 10px 20px;
+  border: 2px solid var(--ink);
+  border-radius: 4px;
+  background: transparent;
+  color: var(--ink);
   font: inherit;
-  font-weight: 600;
-  font-size: 0.92rem;
+  font-weight: 700;
+  font-size: 16px;
   text-decoration: none;
   cursor: pointer;
-  transition: border-color 0.15s, transform 0.15s;
 }
 .btn:hover {
-  border-color: var(--accent);
-  transform: translateY(-1px);
+  background: var(--ink);
+  color: #ffffff;
 }
 .btn--primary {
-  border-color: var(--accent);
-  background: var(--accent);
-  color: var(--on-accent);
+  border-color: var(--blue);
+  background: var(--blue);
+  color: #ffffff;
+}
+.btn--primary:hover {
+  border-color: var(--blue-deep);
+  background: var(--blue-deep);
 }
 
-/* Contenu Markdown des réponses (généré par v-html, donc styles globaux) */
+/* Contenu Markdown des réponses du chat (rendu avec v-html, donc styles globaux) */
 .answer > :first-child { margin-top: 0; }
 .answer > :last-child { margin-bottom: 0; }
 .answer p,
@@ -91,20 +114,18 @@ body {
 .answer li + li { margin-top: 4px; }
 .answer h1,
 .answer h2,
-.answer h3 { font-size: 1.05rem; margin: 20px 0 8px; }
-.answer a { color: var(--accent-strong); }
-
+.answer h3 { font-size: 1.15rem; margin: 20px 0 8px; }
 .answer code {
   font-family: "JetBrains Mono", ui-monospace, Consolas, monospace;
   font-size: 0.86em;
   padding: 2px 5px;
-  border-radius: 5px;
-  background: var(--accent-soft);
+  border-radius: 4px;
+  background: var(--teal-wash);
 }
 .answer pre {
   margin: 0 0 12px;
   padding: 14px 16px;
-  border-radius: 10px;
+  border-radius: 6px;
   background: var(--code-bg);
   color: var(--code-text);
   overflow-x: auto;
@@ -115,8 +136,6 @@ body {
   background: none;
   font-size: 0.85rem;
 }
-
-/* Citations [n] transformées en pastilles cliquables */
 .answer a.cite {
   display: inline-grid;
   place-items: center;
@@ -125,8 +144,8 @@ body {
   padding: 0 4px;
   margin: 0 1px;
   border-radius: 9px;
-  background: var(--accent-soft);
-  color: var(--accent-strong);
+  background: var(--teal-wash);
+  color: var(--blue-deep);
   font-size: 0.7rem;
   font-weight: 700;
   text-decoration: none;
@@ -134,12 +153,12 @@ body {
   line-height: 1;
 }
 .answer a.cite:hover {
-  background: var(--accent);
-  color: var(--on-accent);
+  background: var(--blue);
+  color: #ffffff;
 }
 
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 3px solid var(--teal);
   outline-offset: 2px;
 }
 

@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from "vue-router";
 import HomeView from "./views/HomeView.vue";
-import { site } from "./site";
+import { fullName } from "./site";
 
 const router = createRouter({
   history: createWebHistory(),
@@ -33,7 +33,7 @@ const router = createRouter({
 
 router.afterEach((to) => {
   const title = to.meta.title as string | undefined;
-  document.title = title ? `${title} · ${site.name}` : `${site.name} · ${site.role}`;
+  document.title = title ? `${title} | ${fullName}` : `${fullName}, développeur front-end`;
 });
 
 export default router;
