@@ -16,14 +16,21 @@ COPY package.json package-lock.json ./
 # d'onnxruntime (le moteur du modèle d'embeddings), qui échoue sinon.
 RUN npm ci --onnxruntime-node-install-cuda=skip
 
-COPY . .
-
-# Index de la doc construit une fois pour toutes. Le modèle d'embeddings est
-# téléchargé ici et reste dans l'image : pas de téléchargement au démarrage.
+# Index de la doc : on ne copie QUE le code qui le construit. Tant que ces fichiers
+# ne changent pas, Docker réutilise le cache et saute la vectorisation (~3 min),
+# même si le site ou le serveur ont changé. Le modèle d'embeddings est téléchargé
+# ici et reste dans l'image : pas de téléchargement au démarrage.
+COPY tsconfig.json ./
+COPY src/ingest ./src/ingest
+COPY src/lib ./src/lib
 RUN npm run docs:fetch \
   && npm run ingest \
   && npm run embed \
   && rm -rf data/vue-docs
+
+# Le reste du projet (site, serveur). data/ est exclu par .dockerignore,
+# donc l'index construit juste au-dessus n'est pas écrasé.
+COPY . .
 
 # Interface Vue → web/dist, servie par Express
 RUN npm run build

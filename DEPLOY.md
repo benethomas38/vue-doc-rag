@@ -112,6 +112,16 @@ git pull
 docker compose up -d --build
 ```
 
+Si tu n'as modifié que le site ou le serveur, la vectorisation de la doc est
+reprise du cache : le build ne prend que quelques dizaines de secondes. Elle n'est
+refaite que si `package.json`, `src/ingest/` ou `src/lib/` changent.
+
+Pour récupérer la toute dernière version de la doc Vue (elle aussi gardée en cache) :
+
+```bash
+docker compose build --no-cache && docker compose up -d
+```
+
 ## 7. Sécurité de la clé API
 
 - Dans la console Anthropic, fixe une **limite de dépenses mensuelle** : c'est la
