@@ -7,11 +7,12 @@ export const site = {
   lastName: "Béné",
   role: "Développeur front-end à Grenoble",
   status: "Freelance, disponible pour de nouvelles missions.",
-  intro:
-    "Je fais du front depuis plus de six ans, surtout en Vue.js, mais aussi en AngularJS et en React. " +
-    "J'utilise l'IA pour coder, déboguer et apprendre plus vite, et je l'intègre dans mes projets : " +
-    "le premier, un assistant qui répond aux questions sur la doc de Vue, tourne en ligne sur ce site.",
-
+ intro:
+    "Développeur front-end avec 5 ans d'expérience, spécialisé en Vue.js (2.7 et 3) et TypeScript, " +
+    "avec une pratique d'Angular et de React. J'interviens sur le développement et l'évolution " +
+    "d'applications métier, ainsi que sur la réduction de la dette technique. " +
+    "Je conçois aussi des interfaces qui intègrent des LLM (RAG, streaming, API Claude et OpenAI). " +
+    "Exemple en production : mon assistant documentaire sur benethomas.fr.",
   // Regroupées comme sur le CV
   skills: [
     {
