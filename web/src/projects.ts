@@ -28,6 +28,18 @@ export const projects: Project[] = [
     demo: true,
   },
   {
+    slug: "assistant-agp",
+    title: "Assistant AGP",
+    summary:
+      "Un agent IA qui agit : décris un événement de parkour en une phrase, il résout la date, vérifie l'agenda, " +
+      "trouve le spot, consulte la météo et prépare la fiche. C'est toi qui cliques pour publier.",
+    stack: "Vue 3, TypeScript, Node.js, API Claude (tool use), Open-Meteo",
+    year: "2026",
+    route: "/projets/assistant-agp",
+    repo: "https://github.com/benethomas38/vue-doc-rag",
+    demo: true,
+  },
+  {
     slug: "visualiseur",
     title: "Visualiseur audio",
     summary:

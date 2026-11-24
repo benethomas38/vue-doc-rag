@@ -2,8 +2,10 @@ import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import express, { type NextFunction, type Request, type Response } from "express";
 import rateLimit from "express-rate-limit";
+import Anthropic from "@anthropic-ai/sdk";
 import { ask, askStream, loadIndex } from "./rag.ts";
 import { createDailyQuota } from "./quota.ts";
+import { createAgentRouter } from "../agent/routes.ts";
 
 const PORT = Number(process.env.PORT ?? 3001);
 const PER_HOUR = Number(process.env.RATE_LIMIT_PER_HOUR ?? 10);   // questions par visiteur et par heure
@@ -106,6 +108,19 @@ app.post("/api/ask/stream", perVisitor, (req, res, next) => {
   }
   res.end();
 });
+
+// --- Assistant AGP (agent avec outils) -------------------------------------------
+
+const anthropic = new Anthropic();
+app.use(
+  "/api/agent",
+  createAgentRouter({
+    create: (params, signal) => anthropic.messages.create(params, { signal }),
+    model: process.env.AGENT_MODEL ?? process.env.CLAUDE_MODEL ?? "claude-haiku-5-5",
+    perHour: Number(process.env.AGENT_PER_HOUR ?? 6),     // demandes par visiteur et par heure
+    perDay: Number(process.env.AGENT_DAILY_LIMIT ?? 100), // demandes par jour, tous visiteurs
+  }),
+);
 
 app.use("/api", (_req, res) => {
   res.status(404).json({ error: "Route inconnue." });

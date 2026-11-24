@@ -2,7 +2,9 @@
 import { nextTick, ref, watch } from "vue";
 
 const model = defineModel<string>({ required: true });
-defineProps<{ disabled: boolean }>();
+withDefaults(defineProps<{ disabled: boolean; placeholder?: string }>(), {
+  placeholder: "Pose ta question sur Vue.js…",
+});
 const emit = defineEmits<{ submit: [] }>();
 
 const textarea = ref<HTMLTextAreaElement | null>(null);
@@ -33,8 +35,8 @@ defineExpose({ focus: () => textarea.value?.focus() });
       ref="textarea"
       v-model="model"
       rows="1"
-      placeholder="Pose ta question sur Vue.js…"
-      aria-label="Ta question"
+      :placeholder="placeholder"
+      :aria-label="placeholder"
       @keydown="onKeydown"
     />
     <button type="submit" :disabled="disabled || !model.trim()" aria-label="Envoyer">

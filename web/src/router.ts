@@ -26,6 +26,12 @@ const router = createRouter({
       meta: { title: "Visualiseur audio" },
     },
     {
+      path: "/projets/assistant-agp",
+      name: "assistant-agp",
+      component: () => import("./views/AgentView.vue"),
+      meta: { title: "Assistant AGP" },
+    },
+    {
       path: "/:pathMatch(.*)*",
       name: "not-found",
       component: () => import("./views/NotFoundView.vue"),
