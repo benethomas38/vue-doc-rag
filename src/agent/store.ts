@@ -75,6 +75,10 @@ export function createStore(now: () => number = Date.now) {
       return sessions.get(sessionId)?.drafts.get(draftId);
     },
 
+    isPublished(sessionId: string, draftId: string): boolean {
+      return !!sessions.get(sessionId)?.published.some((e) => e.id === draftId);
+    },
+
     /** Appelé uniquement par la route de publication, c'est-à-dire par un clic humain. */
     publish(sessionId: string, draftId: string): EventDraft | { erreur: string } {
       const s = session(sessionId);

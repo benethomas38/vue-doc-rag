@@ -6,10 +6,10 @@ const reply = (daily: Record<string, number[]>) => async () => ({ ok: true, stat
 describe("météo", () => {
   it("traduit la réponse d'Open-Meteo et donne un conseil", async () => {
     const forecast = createWeather(
-      reply({ weather_code: [61], temperature_2m_min: [1.6], temperature_2m_max: [7.4], precipitation_probability_max: [85], wind_speed_10m_max: [14.2] }),
+      reply({ weather_code: [61], temperature_2m_min: [1.6], temperature_2m_max: [7.4], precipitation_probability_max: [85], wind_speed_10m_max: [14.2], sunset: ["2026-11-28T16:47"] } as never),
     );
     expect(await forecast("2026-11-28", "2026-11-24")).toEqual({
-      ok: true, date: "2026-11-28", ciel: "pluie", tempMin: 2, tempMax: 7, risquePluie: 85, ventMax: 14,
+      ok: true, date: "2026-11-28", ciel: "pluie", tempMin: 2, tempMax: 7, risquePluie: 85, ventMax: 14, coucherSoleil: "16:47",
       conseil: "Pluie probable : surfaces glissantes, prévoir un repli en salle.",
     });
   });

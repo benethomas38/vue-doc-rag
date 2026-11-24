@@ -15,8 +15,9 @@ const tools = [
   { name: "resoudre_date", text: "Transforme « samedi prochain » en date précise et signale les ambiguïtés. Un calcul déterministe, parce qu'un LLM se trompe facilement sur les jours." },
   { name: "verifier_agenda", text: "Liste ce qui est déjà prévu ce jour-là, pour repérer les conflits." },
   { name: "chercher_spot", text: "Retrouve un lieu connu de l'association à partir d'un mot comme « Bastille » ou « en salle »." },
-  { name: "meteo", text: "Interroge Open-Meteo, un vrai service extérieur, et en tire un conseil pour une séance en plein air." },
+  { name: "meteo", text: "Interroge Open-Meteo, un vrai service extérieur : prévisions, heure du coucher du soleil et conseil pour une séance en plein air." },
   { name: "creer_brouillon", text: "Prépare la fiche après avoir vérifié chaque champ. Il ne publie rien." },
+  { name: "modifier_brouillon", text: "Change seulement les champs demandés (« mets-le à 17 h »). Si seul le début bouge, la durée est gardée." },
 ];
 
 const guards = [
@@ -65,7 +66,7 @@ const guards = [
 
   <section class="section split">
     <div>
-      <h2 id="tools-title">Ses cinq outils</h2>
+      <h2 id="tools-title">Ses six outils</h2>
       <dl class="list" aria-labelledby="tools-title">
         <div v-for="t in tools" :key="t.name">
           <dt><code>{{ t.name }}</code></dt>

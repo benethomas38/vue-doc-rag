@@ -11,6 +11,12 @@ const LABELS: Record<string, string> = {
   chercher_spot: "Trouver le lieu",
   meteo: "Consulter la météo",
   creer_brouillon: "Préparer la fiche",
+  modifier_brouillon: "Modifier la fiche",
+};
+
+const FIELD_NAMES: Record<string, string> = {
+  titre: "titre", date: "date", debut: "début", fin: "fin", spot_id: "lieu",
+  places: "places", niveau: "niveau", description: "description", plan_b: "plan B",
 };
 
 export function stepLabel(name: string): string {
@@ -39,6 +45,12 @@ export function stepInput(name: string, input: unknown): string {
       return `« ${i.recherche ?? ""} »`;
     case "creer_brouillon":
       return `${i.titre ?? ""}, ${shortDate(i.date)} ${i.debut ?? ""}-${i.fin ?? ""}`;
+    case "modifier_brouillon": {
+      const changes = Object.entries(i)
+        .filter(([k]) => k !== "brouillon_id")
+        .map(([k, v]) => `${FIELD_NAMES[k] ?? k} → ${k === "date" ? shortDate(v) : String(v).slice(0, 40)}`);
+      return changes.join(", ");
+    }
     default:
       return "";
   }
@@ -61,10 +73,12 @@ export function stepOutput(name: string, ok: boolean, output: unknown): string {
       return spots.map((s) => `${s.nom} (${s.type === "interieur" ? "en salle" : "extérieur"})`).join(", ");
     }
     case "meteo":
-      return `${o.ciel}, ${o.tempMin} à ${o.tempMax} °C, pluie ${o.risquePluie} % : ${o.conseil}`;
-    case "creer_brouillon": {
+      return `${o.ciel}, ${o.tempMin} à ${o.tempMax} °C, pluie ${o.risquePluie} %${o.coucherSoleil ? `, nuit à ${o.coucherSoleil}` : ""} : ${o.conseil}`;
+    case "creer_brouillon":
+    case "modifier_brouillon": {
+      const done = name === "modifier_brouillon" ? "Fiche modifiée" : "Fiche prête";
       const conflicts = Array.isArray(o.conflits) ? o.conflits.length : 0;
-      return conflicts ? `Fiche prête, ${conflicts} conflit${conflicts > 1 ? "s" : ""} signalé${conflicts > 1 ? "s" : ""}` : "Fiche prête, aucun conflit";
+      return conflicts ? `${done}, ${conflicts} conflit${conflicts > 1 ? "s" : ""} signalé${conflicts > 1 ? "s" : ""}` : `${done}, aucun conflit`;
     }
     default:
       return "";

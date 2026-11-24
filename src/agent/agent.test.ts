@@ -117,6 +117,35 @@ describe("outils", () => {
     expect(ctx.store.agendaFor("autre-session-00000001", "2026-11-30")).toEqual([]);
   });
 
+  it("modifie une fiche : « mets l'heure à 17 h » garde la durée et le même id", async () => {
+    const ctx = context();
+    const created = await runTool("creer_brouillon", { titre: "Jam débutants au Fort de la Bastille", date: "2026-11-28", debut: "14:00", fin: "16:00", spot_id: "bastille", places: 30, niveau: "débutants", description: "Jam.", plan_b: "Gymnase" }, ctx);
+    const id = (created.output as { brouillon: { id: string } }).brouillon.id;
+
+    const r = await runTool("modifier_brouillon", { brouillon_id: id, debut: "17:00" }, ctx);
+    expect(r.ok).toBe(true);
+    expect((r.output as { brouillon: object }).brouillon).toMatchObject({ id, debut: "17:00", fin: "19:00", places: 30, planB: "Gymnase" });
+
+    // Un champ invalide est refusé, la fiche reste intacte
+    expect((await runTool("modifier_brouillon", { brouillon_id: id, places: 0 }, ctx)).ok).toBe(false);
+    expect(ctx.store.getDraft(SESSION, id)?.places).toBe(30);
+
+    // Retirer le plan B
+    await runTool("modifier_brouillon", { brouillon_id: id, plan_b: "" }, ctx);
+    expect(ctx.store.getDraft(SESSION, id)?.planB).toBe(undefined);
+
+    // Plus modifiable une fois publiée, et introuvable depuis une autre session
+    ctx.store.publish(SESSION, id);
+    expect((await runTool("modifier_brouillon", { brouillon_id: id, debut: "18:00" }, ctx)).output).toMatchObject({ erreur: "Cette fiche est déjà publiée, elle ne peut plus être modifiée. Propose de créer une nouvelle fiche." });
+    expect((await runTool("modifier_brouillon", { brouillon_id: id, debut: "18:00" }, { ...ctx, sessionId: "autre-session-00000001" })).ok).toBe(false);
+  });
+
+  it("ne décale pas la fin au-delà de minuit", async () => {
+    const { shiftEnd } = await import("./tools.ts");
+    expect(shiftEnd("14:00", "16:00", "17:00")).toBe("19:00");
+    expect(shiftEnd("14:00", "16:00", "23:00")).toBe(null);
+  });
+
   it("trouve les spots par mots entiers", () => {
     expect(findSpots("à la Bastille").map((s) => s.id)).toEqual(["bastille"]);
     expect(findSpots("parc Mistral").map((s) => s.id)).toEqual(["paul-mistral"]);

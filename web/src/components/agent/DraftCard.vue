@@ -6,8 +6,13 @@ const emit = defineEmits<{ publish: []; edit: [] }>();
 </script>
 
 <template>
-  <article class="card" :class="{ 'card--published': draft.published }" :aria-label="`Fiche : ${draft.titre}`">
-    <p class="badge" :class="{ 'badge--ok': draft.published }">
+  <article
+    class="card"
+    :class="{ 'card--published': draft.published, 'card--old': draft.superseded }"
+    :aria-label="`Fiche : ${draft.titre}`"
+  >
+    <p v-if="draft.superseded" class="badge badge--old">Ancienne version, remplacée plus bas</p>
+    <p v-else class="badge" :class="{ 'badge--ok': draft.published }">
       {{ draft.published ? "Publié dans ton agenda de démo" : "Brouillon, pas encore publié" }}
     </p>
     <h3>{{ draft.titre }}</h3>
@@ -39,7 +44,7 @@ const emit = defineEmits<{ publish: []; edit: [] }>();
 
     <p v-if="draft.publishError" class="error" role="alert">{{ draft.publishError }}</p>
 
-    <div v-if="!draft.published" class="actions">
+    <div v-if="!draft.published && !draft.superseded" class="actions">
       <button class="btn btn--primary" :disabled="draft.publishing" @click="emit('publish')">
         {{ draft.publishing ? "Publication…" : "Publier" }}
       </button>
@@ -67,6 +72,18 @@ const emit = defineEmits<{ publish: []; edit: [] }>();
   color: #7a4f00;
   font-size: 13px;
   font-weight: 700;
+}
+.card--old {
+  border-color: var(--border);
+  opacity: 0.6;
+}
+.card--old h3 {
+  text-decoration: line-through;
+  text-decoration-thickness: 2px;
+}
+.badge--old {
+  background: var(--gray);
+  color: var(--muted);
 }
 .badge--ok {
   background: var(--teal-wash);

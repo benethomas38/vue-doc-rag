@@ -35,6 +35,7 @@ export type Forecast =
       tempMax: number;
       risquePluie: number; // %
       ventMax: number;     // km/h
+      coucherSoleil?: string; // HH:MM
       conseil: string;
     }
   | { ok: false; erreur: string };
@@ -66,7 +67,7 @@ export function createWeather(fetchImpl: FetchLike = fetch, now: () => number = 
     const params = new URLSearchParams({
       latitude: String(GRENOBLE.latitude),
       longitude: String(GRENOBLE.longitude),
-      daily: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max",
+      daily: "weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max,wind_speed_10m_max,sunset",
       timezone: "Europe/Paris",
       start_date: date,
       end_date: date,
@@ -77,7 +78,7 @@ export function createWeather(fetchImpl: FetchLike = fetch, now: () => number = 
         signal: AbortSignal.timeout(TIMEOUT_MS),
       });
       if (!res.ok) return { ok: false, erreur: `Service météo indisponible (${res.status}).` };
-      const body = (await res.json()) as { daily?: Record<string, (number | null)[]> };
+      const body = (await res.json()) as { daily?: Record<string, (number | null)[]> & { sunset?: string[] } };
       const d = body.daily;
       if (!d || d.weather_code?.[0] == null) return { ok: false, erreur: "Réponse météo incomplète." };
 
@@ -88,7 +89,9 @@ export function createWeather(fetchImpl: FetchLike = fetch, now: () => number = 
         risquePluie: d.precipitation_probability_max?.[0] ?? 0,
         ventMax: Math.round(d.wind_speed_10m_max?.[0] ?? 0),
       };
-      const value: Forecast = { ok: true, date, ...base, conseil: outdoorAdvice(base) };
+      // "2026-11-28T16:47" → "16:47" : utile pour une séance qui finirait de nuit
+      const sunset = d.sunset?.[0]?.slice(11, 16);
+      const value: Forecast = { ok: true, date, ...base, ...(sunset ? { coucherSoleil: sunset } : {}), conseil: outdoorAdvice(base) };
       cache.set(date, { at: now(), value });
       return value;
     } catch {

@@ -22,6 +22,7 @@ export interface Draft {
   planB?: string;
   spot: { id: string; nom: string; type: "exterieur" | "interieur"; adresse: string; rendezVous: string };
   published?: boolean;
+  superseded?: boolean; // remplacée par une version modifiée plus bas dans la conversation
   publishing?: boolean;
   publishError?: string;
 }
@@ -72,9 +73,13 @@ export function useAgent() {
       .map((t) => {
         if (t.role === "user") return { role: "user" as const, text: t.text };
         const texts = t.parts.filter((p) => p.kind === "text").map((p) => p.text);
-        const drafts = t.parts.filter((p) => p.kind === "draft").map((p) => p.draft);
+        // Seulement la dernière version de chaque fiche, avec son id pour que l'agent puisse la modifier
+        const drafts = t.parts.filter((p) => p.kind === "draft" && !p.draft.superseded).map((p) => (p as { draft: Draft }).draft);
         for (const d of drafts) {
-          texts.push(`[Brouillon créé : « ${d.titre} », ${d.jour} ${d.debut}-${d.fin}, ${d.spot.nom}, ${d.places} places, ${d.niveau}${d.published ? ", publié" : ""}]`);
+          texts.push(
+            `[Fiche id=${d.id} : « ${d.titre} », ${d.jour} ${d.debut}-${d.fin}, ${d.spot.nom}, ${d.places} places, ` +
+              `${d.niveau}${d.planB ? `, plan B : ${d.planB}` : ""}, ${d.published ? "publiée" : "brouillon non publié"}]`,
+          );
         }
         return { role: "assistant" as const, text: texts.join("\n") };
       })
@@ -123,7 +128,12 @@ export function useAgent() {
               step.output = d.output;
             }
           } else if (event === "draft") {
-            turn.parts.push({ kind: "draft", draft: d.draft as Draft });
+            const draft = d.draft as Draft;
+            // Une fiche modifiée garde son id : les versions précédentes passent en « remplacée »
+            for (const t of turns.value) {
+              for (const p of t.parts) if (p.kind === "draft" && p.draft.id === draft.id) p.draft.superseded = true;
+            }
+            turn.parts.push({ kind: "draft", draft });
           } else if (event === "error") {
             throw new Error(String(d.message ?? "Erreur"));
           }
