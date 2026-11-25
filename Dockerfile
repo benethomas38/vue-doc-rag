@@ -16,10 +16,6 @@ COPY package.json package-lock.json ./
 # d'onnxruntime (le moteur du modèle d'embeddings), qui échoue sinon.
 RUN npm ci --onnxruntime-node-install-cuda=skip
 
-# L'assistant AGP est une application Angular à part (TypeScript 6, ses propres dépendances)
-COPY widgets/agp-angular/package.json widgets/agp-angular/package-lock.json ./widgets/agp-angular/
-RUN npm ci --prefix widgets/agp-angular
-
 # Index de la doc : on ne copie QUE le code qui le construit. Tant que ces fichiers
 # ne changent pas, Docker réutilise le cache et saute la vectorisation (~3 min),
 # même si le site ou le serveur ont changé. Le modèle d'embeddings est téléchargé
@@ -31,6 +27,11 @@ RUN npm run docs:fetch \
   && npm run ingest \
   && npm run embed \
   && rm -rf data/vue-docs
+
+# L'assistant AGP est une application Angular à part (TypeScript 6, ses propres dépendances).
+# Installé APRÈS l'index : changer les dépendances Angular ne relance pas la vectorisation.
+COPY widgets/agp-angular/package.json widgets/agp-angular/package-lock.json ./widgets/agp-angular/
+RUN npm ci --prefix widgets/agp-angular
 
 # Le reste du projet (site, serveur). data/ est exclu par .dockerignore,
 # donc l'index construit juste au-dessus n'est pas écrasé.
