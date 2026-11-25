@@ -16,6 +16,18 @@ export interface Project {
 
 export const projects: Project[] = [
   {
+    slug: "donjon",
+    title: "Le Donjon qui parle",
+    summary:
+      "Un jeu d'exploration de donjon en pixel art, au tour par tour, où les personnages te répondent vraiment : " +
+      "marchande avec un gobelin, console un squelette, baratine un garde. Claude leur donne la parole, le moteur du jeu garde le dernier mot.",
+    stack: "Vue 3, TypeScript, Canvas 2D, Node.js, API Claude (tool use, streaming)",
+    year: "2026",
+    route: "/projets/donjon",
+    repo: "https://github.com/benethomas38/vue-doc-rag",
+    demo: true,
+  },
+  {
     slug: "vue-doc-rag",
     title: "Vue Doc Assistant",
     summary:

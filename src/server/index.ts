@@ -6,6 +6,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import { ask, askStream, loadIndex } from "./rag.ts";
 import { createDailyQuota } from "./quota.ts";
 import { createAgentRouter } from "../agent/routes.ts";
+import { createGameRouter } from "../game/routes.ts";
 
 const PORT = Number(process.env.PORT ?? 3001);
 const PER_HOUR = Number(process.env.RATE_LIMIT_PER_HOUR ?? 10);   // questions par visiteur et par heure
@@ -119,6 +120,18 @@ app.use(
     model: process.env.AGENT_MODEL ?? process.env.CLAUDE_MODEL ?? "claude-haiku-5-5",
     perHour: Number(process.env.AGENT_PER_HOUR ?? 6),     // demandes par visiteur et par heure
     perDay: Number(process.env.AGENT_DAILY_LIMIT ?? 100), // demandes par jour, tous visiteurs
+  }),
+);
+
+// --- Le Donjon qui parle (PNJ joués par Claude) ------------------------------------
+
+app.use(
+  "/api/game",
+  createGameRouter({
+    stream: (params, signal) => anthropic.messages.stream(params, { signal }),
+    model: process.env.GAME_MODEL ?? process.env.CLAUDE_MODEL ?? "claude-haiku-5-5",
+    perHour: Number(process.env.GAME_PER_HOUR ?? 40),     // répliques par visiteur et par heure
+    perDay: Number(process.env.GAME_DAILY_LIMIT ?? 600),  // répliques par jour, tous visiteurs
   }),
 );
 

@@ -32,6 +32,12 @@ const router = createRouter({
       meta: { title: "Assistant AGP" },
     },
     {
+      path: "/projets/donjon",
+      name: "donjon",
+      component: () => import("./views/GameView.vue"),
+      meta: { title: "Le Donjon qui parle" },
+    },
+    {
       path: "/:pathMatch(.*)*",
       name: "not-found",
       component: () => import("./views/NotFoundView.vue"),
