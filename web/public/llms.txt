@@ -1,0 +1,24 @@
+# Thomas Béné, développeur front-end
+
+> Site portfolio de Thomas Béné, développeur front-end freelance à Grenoble (5 ans d'expérience), spécialisé en Vue.js (2.7 et 3) et TypeScript. Il conçoit aussi des interfaces qui intègrent des LLM (RAG, streaming, API Claude et OpenAI). Disponible pour de nouvelles missions.
+
+Compétences : Vue 3 et Vue 2.7, AngularJS, TypeScript, JavaScript, HTML5/CSS3 responsive, Node.js, Express, React (notions) ; RAG, embeddings, API Claude en streaming ; Vite, Vitest, Git, GitHub Actions, Docker, Caddy, VPS Linux ; Agile/Scrum, analyse du besoin, UX.
+
+Les projets ci-dessous ont tous une démo utilisable en ligne. Le code source est sur GitHub.
+
+## Pages
+
+- [Accueil](https://benethomas.fr/): présentation, compétences et parcours
+- [Projets](https://benethomas.fr/projets): liste de tous les projets
+
+## Projets
+
+- [Le Donjon qui parle](https://benethomas.fr/projets/donjon): jeu d'exploration de donjon en pixel art, au tour par tour, où les personnages (joués par Claude) répondent vraiment. Vue 3, TypeScript, Canvas 2D, Node.js, API Claude (tool use, streaming).
+- [Vue Doc Assistant](https://benethomas.fr/projets/vue-doc-rag): assistant RAG qui répond aux questions sur Vue.js à partir de la documentation officielle, en citant ses sources. Vue 3, TypeScript, Node.js, API Claude, Docker.
+- [Assistant AGP](https://benethomas.fr/projets/assistant-agp): agent IA qui prépare la fiche d'un événement de parkour (date, agenda, spot, météo) ; l'humain valide avant publication. Vue 3, TypeScript, Node.js, API Claude (tool use), Open-Meteo.
+- [Visualiseur audio](https://benethomas.fr/projets/visualiseur): visualisation en temps réel d'un morceau de musique (spectre, barres, oscilloscope, détection de beat), entièrement dans le navigateur. Vue 3, TypeScript, Web Audio API, Canvas 2D.
+
+## Optional
+
+- [Code source sur GitHub](https://github.com/benethomas38/vue-doc-rag): dépôt du site et de tous les projets
+- [Profil GitHub](https://github.com/benethomas38)

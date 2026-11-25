@@ -146,7 +146,13 @@ if (existsSync(WEB_DIST)) {
   app.use(express.static(WEB_DIST, { maxAge: "1h", index: false }));
   // Toutes les autres URL renvoient l'app Vue, qui gère ses routes (/projets, /projets/vue-doc-rag…)
   app.use((req, res, next) => {
-    if (req.method !== "GET") return next();
+    if (req.method !== "GET" && req.method !== "HEAD") return next();
+    // Un fichier absent (/.well-known/…, /truc.json, /image.png…) doit renvoyer une vraie 404,
+    // pas la page HTML : sinon robots, moteurs et agents IA lisent du HTML à la place du fichier.
+    if (req.path.startsWith("/.well-known/") || /\.[a-z0-9]+$/i.test(req.path)) {
+      res.status(404).type("text/plain").send("Not found");
+      return;
+    }
     res.sendFile(resolve(WEB_DIST, "index.html"));
   });
 }
