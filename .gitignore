@@ -1,5 +1,7 @@
 node_modules/
-data/
+# Le slash initial : seulement le dossier data/ de la racine (doc Vue, index),
+# pas web/src/lib/game/data/ qui contient le code du jeu
+/data/
 dist/
 web/dist/
 .env
