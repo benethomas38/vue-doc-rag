@@ -1,5 +1,5 @@
 import { computed, ref } from "vue";
-import { parseSSE } from "../lib/sse";
+import { parseSSE } from "../../../shared/sse";
 import type { Source } from "../lib/citations";
 
 export interface Message {

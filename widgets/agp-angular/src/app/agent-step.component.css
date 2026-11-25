@@ -1,45 +1,6 @@
-<script setup lang="ts">
-import { computed } from "vue";
-import type { Step } from "../../composables/useAgent";
-import { stepInput, stepLabel, stepOutput } from "../../lib/agentLabels";
-
-const props = defineProps<{ step: Step }>();
-
-const summary = computed(() =>
-  props.step.status === "running" ? "…" : stepOutput(props.step.name, props.step.status === "ok", props.step.output),
-);
-const json = (v: unknown) => JSON.stringify(v, null, 2);
-</script>
-
-<!-- Une étape = un appel d'outil. Dépliée, elle montre l'appel exact et la réponse brute. -->
-<template>
-  <details class="step" :class="`step--${step.status}`">
-    <summary>
-      <span class="icon" aria-hidden="true">
-        <span v-if="step.status === 'running'" class="spinner" />
-        <template v-else-if="step.status === 'ok'">✓</template>
-        <template v-else>!</template>
-      </span>
-      <span class="body">
-        <span class="line">
-          <strong>{{ stepLabel(step.name) }}</strong>
-          <span class="input">{{ stepInput(step.name, step.input) }}</span>
-        </span>
-        <span class="output">{{ summary }}</span>
-      </span>
-    </summary>
-    <div class="raw">
-      <p class="raw__title"><code>{{ step.name }}</code>, paramètres envoyés par Claude :</p>
-      <pre>{{ json(step.input) }}</pre>
-      <template v-if="step.status !== 'running'">
-        <p class="raw__title">Réponse du serveur, renvoyée à Claude :</p>
-        <pre>{{ json(step.output) }}</pre>
-      </template>
-    </div>
-  </details>
-</template>
-
-<style scoped>
+:host {
+  display: block;
+}
 .step {
   border-left: 3px solid var(--border);
   padding-left: 12px;
@@ -143,4 +104,3 @@ pre {
     transform: rotate(360deg);
   }
 }
-</style>

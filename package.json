@@ -3,7 +3,7 @@
   "version": "0.2.0",
   "private": true,
   "type": "module",
-  "description": "Portfolio de Thomas Béné, avec en démo un assistant RAG sur la documentation Vue.js.",
+  "description": "Portfolio de Thomas Béné : site Vue, avec des projets en React et en Angular intégrés comme Web Components.",
   "engines": {
     "node": ">=22"
   },
@@ -12,13 +12,16 @@
     "ingest": "tsx src/ingest/run.ts",
     "embed": "tsx src/ingest/embed.ts",
     "search": "tsx src/ingest/search.ts",
-    "dev": "concurrently -n server,web -c green,cyan \"npm:dev:server\" \"npm:dev:web\"",
+    "dev": "concurrently -n server,web,agp -c green,cyan,red \"npm:dev:server\" \"npm:dev:web\" \"npm:dev:agp\"",
     "dev:server": "tsx watch --env-file=.env src/server/index.ts",
     "dev:web": "vite web",
-    "build": "vite build web",
+    "dev:agp": "npm --prefix widgets/agp-angular run watch",
+    "build:agp": "npm --prefix widgets/agp-angular run build",
+    "build": "npm run build:agp && vite build web",
     "start": "tsx src/server/index.ts",
     "test": "vitest run",
-    "typecheck": "tsc --noEmit && vue-tsc --noEmit -p web"
+    "typecheck": "tsc --noEmit && vue-tsc --noEmit -p web && tsc --noEmit -p widgets/visualizer-react",
+    "install:widgets": "npm ci --prefix widgets/agp-angular"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.60.0",
@@ -27,6 +30,8 @@
     "express": "^5.1.0",
     "express-rate-limit": "^7.5.0",
     "marked": "^15.0.0",
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
     "tsx": "^4.19.0",
     "vue": "^3.5.0",
     "vue-router": "^4.5.0"
@@ -34,6 +39,8 @@
   "devDependencies": {
     "@types/express": "^5.0.0",
     "@types/node": "^22.0.0",
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-vue": "^5.2.0",
     "concurrently": "^9.1.0",
     "typescript": "^5.6.0",

@@ -5,3 +5,6 @@ web/dist
 .git
 .github
 *.log
+web/public/widgets
+**/.angular
+**/node_modules

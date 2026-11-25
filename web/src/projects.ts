@@ -45,7 +45,7 @@ export const projects: Project[] = [
     summary:
       "Un agent IA qui agit : décris un événement de parkour en une phrase, il résout la date, vérifie l'agenda, " +
       "trouve le spot, consulte la météo et prépare la fiche. C'est toi qui cliques pour publier.",
-    stack: "Vue 3, TypeScript, Node.js, API Claude (tool use), Open-Meteo",
+    stack: "Angular (signaux, Angular Elements), TypeScript, Node.js, API Claude (tool use), Open-Meteo",
     year: "2026",
     route: "/projets/assistant-agp",
     repo: "https://github.com/benethomas38/vue-doc-rag",
@@ -57,7 +57,7 @@ export const projects: Project[] = [
     summary:
       "Glisse n'importe quel morceau, il prend vie en temps réel : spectre circulaire, barres ou oscilloscope, " +
       "avec une détection de beat qui fait réagir l'image au kick. Tout tourne dans le navigateur.",
-    stack: "Vue 3, TypeScript, Web Audio API, Canvas 2D",
+    stack: "React, TypeScript, Web Audio API, Canvas 2D",
     year: "2026",
     route: "/projets/visualiseur",
     repo: "https://github.com/benethomas38/vue-doc-rag",

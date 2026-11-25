@@ -1,0 +1,25 @@
+{
+  "name": "agp-angular",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Assistant AGP en Angular, livré comme Web Component <agp-assistant> dans le site Vue.",
+  "scripts": {
+    "build": "ng build",
+    "watch": "ng build --configuration development --watch"
+  },
+  "dependencies": {
+    "@angular/common": "^22.0.0",
+    "@angular/compiler": "^22.0.0",
+    "@angular/core": "^22.0.0",
+    "@angular/elements": "^22.0.0",
+    "@angular/platform-browser": "^22.0.0",
+    "rxjs": "~7.8.0",
+    "tslib": "^2.8.0"
+  },
+  "devDependencies": {
+    "@angular/build": "^22.0.0",
+    "@angular/cli": "^22.0.0",
+    "@angular/compiler-cli": "^22.0.0",
+    "typescript": "~6.0.0"
+  }
+}

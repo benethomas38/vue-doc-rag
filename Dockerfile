@@ -1,4 +1,4 @@
-# Image unique : site Vue buildé + serveur Node + index de la doc + modèle d'embeddings.
+# Image unique : site Vue buildé (avec ses widgets React et Angular) + serveur Node + index de la doc + modèle d'embeddings.
 # Fonctionne sur n'importe quel hébergeur Docker (Render, Railway, Fly.io, VPS OVH…).
 
 FROM node:22-slim
@@ -16,6 +16,10 @@ COPY package.json package-lock.json ./
 # d'onnxruntime (le moteur du modèle d'embeddings), qui échoue sinon.
 RUN npm ci --onnxruntime-node-install-cuda=skip
 
+# L'assistant AGP est une application Angular à part (TypeScript 6, ses propres dépendances)
+COPY widgets/agp-angular/package.json widgets/agp-angular/package-lock.json ./widgets/agp-angular/
+RUN npm ci --prefix widgets/agp-angular
+
 # Index de la doc : on ne copie QUE le code qui le construit. Tant que ces fichiers
 # ne changent pas, Docker réutilise le cache et saute la vectorisation (~3 min),
 # même si le site ou le serveur ont changé. Le modèle d'embeddings est téléchargé
@@ -32,7 +36,7 @@ RUN npm run docs:fetch \
 # donc l'index construit juste au-dessus n'est pas écrasé.
 COPY . .
 
-# Interface Vue → web/dist, servie par Express
+# Assistant Angular → web/public/widgets/agp, puis site Vue (+ visualiseur React) → web/dist, servi par Express
 RUN npm run build
 
 ENV NODE_ENV=production

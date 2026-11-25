@@ -1,6 +1,6 @@
 name: CI
 
-# À chaque push et pull request : vérification des types, tests, build de l'interface
+# À chaque push et pull request : vérification des types, tests, build de l'interface (Vue, React, Angular)
 on:
   push:
     branches: [main]
@@ -16,10 +16,16 @@ jobs:
         with:
           node-version: 22
           cache: npm
+          cache-dependency-path: |
+            package-lock.json
+            widgets/agp-angular/package-lock.json
 
       - name: Installer les dépendances
         # Pas de GPU sur GitHub Actions : on saute la version CUDA d'onnxruntime
         run: npm ci --onnxruntime-node-install-cuda=skip
+
+      - name: Installer les dépendances du widget Angular
+        run: npm run install:widgets
 
       - name: Vérifier les types (serveur + interface)
         run: npm run typecheck
@@ -27,5 +33,5 @@ jobs:
       - name: Tests unitaires
         run: npm test
 
-      - name: Build de l'interface
+      - name: Build de l'interface (Angular, puis Vue + React)
         run: npm run build

@@ -1,6 +1,21 @@
 <script setup lang="ts">
-import AgentChat from "../components/agent/AgentChat.vue";
+import { ref } from "vue";
 import { projects } from "../projects";
+
+// L'interface de l'assistant est une application Angular, buildée à part (widgets/agp-angular)
+// et livrée comme Web Component <agp-assistant>. On charge son script à l'ouverture de la page.
+const AGP_SCRIPT = "/widgets/agp/main.js";
+const loadFailed = ref(false);
+if (!document.querySelector(`script[src="${AGP_SCRIPT}"]`)) {
+  const script = document.createElement("script");
+  script.type = "module";
+  script.src = AGP_SCRIPT;
+  script.onerror = () => {
+    loadFailed.value = true;
+    script.remove(); // on pourra réessayer en revenant sur la page
+  };
+  document.head.append(script);
+}
 
 const project = projects.find((p) => p.slug === "assistant-agp")!;
 
@@ -47,7 +62,8 @@ const guards = [
     </p>
   </section>
 
-  <AgentChat />
+  <agp-assistant />
+  <p v-if="loadFailed" class="hint" role="alert">L'assistant n'a pas pu se charger. Recharge la page pour réessayer.</p>
   <p class="hint">Clique sur une étape pour voir l'appel exact envoyé par Claude et la réponse du serveur.</p>
 
   <section class="section" aria-labelledby="loop-title">
@@ -55,6 +71,8 @@ const guards = [
     <p class="intro">
       Mon assistant RAG répond à une question. Celui-ci agit : il enchaîne des outils jusqu'à obtenir ce qu'il faut.
       Tout repose sur le « tool use » de l'API Claude, en une boucle de quelques dizaines de lignes.
+      L'interface, elle, est une application Angular (signaux, sans zone.js) intégrée à ce site Vue
+      sous forme de Web Component.
     </p>
     <ol class="loop">
       <li v-for="step in loop" :key="step.title">

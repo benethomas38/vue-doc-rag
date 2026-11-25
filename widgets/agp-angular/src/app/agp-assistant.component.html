@@ -1,0 +1,62 @@
+<div class="layout">
+  <div class="chat">
+    <div class="chat__bar">
+      <span class="chat__title">Assistant AGP</span>
+      @if (agent.turns().length) {
+        <button class="link" [disabled]="agent.loading()" (click)="newChat()">Nouvelle demande</button>
+      }
+    </div>
+
+    <div #list class="chat__list" aria-live="polite">
+      @if (!agent.turns().length) {
+        <div class="empty">
+          <p>Décris l'événement à organiser, comme tu l'écrirais à un bénévole, ou pars d'un exemple :</p>
+          <ul class="examples">
+            @for (ex of examples; track ex) {
+              <li><button (click)="submit(ex)">{{ ex }}</button></li>
+            }
+          </ul>
+        </div>
+      }
+
+      @for (t of agent.turns(); track t.id) {
+        @if (t.role === "user") {
+          <article class="msg msg--user">{{ t.text }}</article>
+        } @else {
+          <article class="msg msg--agent" [attr.aria-busy]="t.status === 'running'">
+            @for (p of t.parts; track $index) {
+              @if (p.kind === "text") {
+                <p class="text">{{ p.text }}</p>
+              } @else if (p.kind === "step") {
+                <agp-step [step]="p.step" />
+              } @else {
+                <agp-draft-card [draft]="p.draft" (publish)="agent.publish(p.draft)" (edit)="edit(p.draft)" />
+              }
+            }
+
+            @if (t.status === "running") {
+              <p class="thinking">
+                <span class="dot"></span><span class="dot"></span><span class="dot"></span>
+                L'agent réfléchit…
+              </p>
+            }
+            @if (t.status === "error") {
+              <p class="error" role="alert">{{ t.error }}</p>
+            }
+          </article>
+        }
+      }
+    </div>
+
+    <div class="chat__composer">
+      <agp-request-form
+        [(value)]="request"
+        [disabled]="agent.loading()"
+        placeholder="Décris l'événement à organiser…"
+        (send)="submit()"
+      />
+    </div>
+  </div>
+
+  <agp-demo-agenda [session]="agent.session" [version]="agent.agendaVersion()" />
+</div>

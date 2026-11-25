@@ -5,3 +5,7 @@ node_modules/
 dist/
 web/dist/
 .env
+
+# Web Components buildés à part (Angular) : générés par npm run build
+web/public/widgets/
+.angular/

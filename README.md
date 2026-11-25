@@ -4,8 +4,25 @@ Mon site portfolio en Vue 3, avec en projet phare **Vue Doc Assistant** : un ass
 (Retrieval-Augmented Generation) qui répond aux questions sur Vue.js à partir de la
 documentation officielle, en citant chaque passage utilisé.
 
-**Stack** : Vue 3 · Vue Router · TypeScript · Vite · Node / Express · API Claude (Anthropic) ·
+**Stack** : Vue 3 · React · Angular · Vue Router · TypeScript · Vite · Node / Express · API Claude (Anthropic) ·
 Transformers.js · Vitest · Docker · GitHub Actions
+
+## Trois frameworks, un seul site : les Web Components
+
+Le site est en Vue. Deux projets sont écrits avec d'autres frameworks et livrés comme
+**Web Components** : la page Vue n'utilise qu'une balise, sans connaître le code qu'il y a derrière.
+
+| Projet | Framework | Balise | Build |
+| --- | --- | --- | --- |
+| Visualiseur audio | React 19 | `<audio-visualizer>` | avec le site (Vite), dans un morceau de JS chargé seulement sur sa page |
+| Assistant AGP | Angular 22 (signaux, zoneless) | `<agp-assistant>` | à part (`widgets/agp-angular`, Angular CLI), script chargé par la page |
+
+- **React** : `createRoot` dans un `HTMLElement` personnalisé, styles en CSS Modules.
+- **Angular** : Angular Elements (`createCustomElement`), sans zone.js : la page Vue n'est pas
+  « patchée ». Angular 22 demande TypeScript 6, d'où un `package.json` à part.
+- **Code partagé** (`shared/`) : moteur audio, parseur SSE, libellés de l'agent. Du TypeScript
+  sans framework, utilisé par Vue, React et Angular et testé une seule fois.
+- Les couleurs passent par les variables CSS du site, qui traversent les Web Components.
 
 ## Vue Doc Assistant : fonctionnement
 
@@ -40,11 +57,12 @@ Un jeu d'exploration de donjon en pixel art, au tour par tour (`/projets/donjon`
 
 ```bash
 npm install
+npm run install:widgets   # dépendances du widget Angular
 cp .env.example .env      # puis colle ta clé ANTHROPIC_API_KEY
 npm run docs:fetch        # clone la doc Vue dans data/
 npm run ingest            # découpe → data/chunks.json
 npm run embed             # vectorise → data/index.json
-npm run dev               # serveur (3001) + site (http://localhost:5173)
+npm run dev               # serveur (3001) + site (http://localhost:5173) + widget Angular en watch
 ```
 
 Autres commandes : `npm test`, `npm run typecheck`, `npm run build`,
@@ -79,11 +97,15 @@ src/
 ├── lib/      embeddings, similarité, BM25, fusion des classements
 ├── server/   API Express, prompt, appel à Claude (streaming), limites d'usage
 └── game/     PNJ du donjon : personnalités, outils, validation, énigmes
+shared/           TypeScript sans framework : moteur audio (visualizer/), parseur SSE, libellés de l'agent
+widgets/
+├── visualizer-react/  visualiseur audio en React → <audio-visualizer>
+└── agp-angular/       assistant AGP en Angular → <agp-assistant> (build vers web/public/widgets/agp)
 web/src/
-├── views/        Accueil, Projets, page du RAG, 404
+├── views/        Accueil, Projets, pages des projets, 404
 ├── components/   en-tête, cartes de projet, chat du RAG (rag/)
 ├── composables/  useChat (lecture du flux SSE)
-├── lib/          parseur SSE, rendu Markdown, liens de citations
+├── lib/          rendu Markdown, liens de citations
 │   └── game/     moteur du jeu, génération, sprites, rendu Canvas
 ├── site.ts       infos personnelles
 └── projects.ts   liste des projets

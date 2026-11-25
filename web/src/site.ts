@@ -17,7 +17,7 @@ export const site = {
   skills: [
     {
       title: "Code",
-      items: ["Vue 3 et Vue 2.7", "AngularJS", "TypeScript, JavaScript", "HTML5, CSS3 responsive", "Node.js, Express", "React (notions)"],
+      items: ["Vue 3 et Vue 2.7", "Angular", "TypeScript, JavaScript", "HTML5, CSS3 responsive", "Node.js, Express", "React"],
     },
     {
       title: "IA",

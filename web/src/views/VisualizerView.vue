@@ -1,6 +1,10 @@
 <script setup lang="ts">
-import AudioVisualizer from "../components/visualizer/AudioVisualizer.vue";
 import { projects } from "../projects";
+
+// Le visualiseur est écrit en React et livré comme Web Component <audio-visualizer>.
+// Cet import enregistre la balise ; Vite met React dans un morceau de JS chargé
+// seulement sur cette page.
+import("@widgets/visualizer-react");
 
 const project = projects.find((p) => p.slug === "visualiseur")!;
 
@@ -26,8 +30,12 @@ const choices = [
     why: "Quelques centaines de formes par image, c'est largement dans les moyens du Canvas 2D à 60 images/s, et le code reste lisible. WebGL deviendrait utile avec des milliers de particules ou des shaders.",
   },
   {
-    what: "Aucune bibliothèque",
-    why: "Web Audio API et Canvas sont natifs dans tous les navigateurs récents. Le projet n'ajoute aucune dépendance au site.",
+    what: "React dans un site Vue",
+    why: "Le composant est écrit en React et emballé dans un Web Component, <audio-visualizer>. La page Vue n'utilise que cette balise, et React n'est chargé que sur cette page.",
+  },
+  {
+    what: "Un moteur sans framework",
+    why: "Web Audio, analyse et rendu Canvas sont du TypeScript pur, partagé entre les versions : passer de Vue à React n'a changé que le composant d'interface.",
   },
   {
     what: "Rien ne quitte ton navigateur",
@@ -60,7 +68,7 @@ const choices = [
     </p>
   </section>
 
-  <AudioVisualizer />
+  <audio-visualizer />
 
   <section class="section" aria-labelledby="graph-title">
     <h2 id="graph-title">Le chemin du son</h2>
