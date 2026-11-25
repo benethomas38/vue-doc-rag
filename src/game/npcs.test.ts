@@ -3,14 +3,14 @@ import { buildMessages, readGame, readMood, sanitizeAction, systemPrompt, talk, 
 import { RIDDLES } from "./riddles.ts";
 
 /** Faux modèle : renvoie un texte en deux morceaux, puis les blocs donnés. */
-function fakeStream(text: string, blocks: { type: string; name?: string; input?: unknown }[]): StreamTalk {
+function fakeStream(text: string, blocks: { type: string; name?: string; input?: unknown }[], stopReason = "end_turn"): StreamTalk {
   return () => ({
     async *[Symbol.asyncIterator]() {
       for (const part of [text.slice(0, 5), text.slice(5)]) {
         yield { type: "content_block_delta", delta: { type: "text_delta", text: part } };
       }
     },
-    finalMessage: async () => ({ content: [{ type: "text" }, ...blocks] }),
+    finalMessage: async () => ({ content: [{ type: "text" }, ...blocks], stop_reason: stopReason }),
   });
 }
 
@@ -31,6 +31,11 @@ describe("sanitizeAction", () => {
   it("refuse les outils d'un autre PNJ", () => {
     expect(sanitizeAction("grizzle", "laisser_passer", {})).toBeNull();
     expect(sanitizeAction("sphinx", "ajuster_prix", { remise: 10 })).toBeNull();
+  });
+
+  it("accepte les nombres écrits en texte", () => {
+    expect(sanitizeAction("grizzle", "ajuster_prix", { remise: "15" })).toEqual({ type: "prix", remise: 15 });
+    expect(sanitizeAction("grizzle", "ajuster_prix", { remise: "beaucoup" })).toBeNull();
   });
 
   it("refuse les entrées invalides", () => {
@@ -107,5 +112,24 @@ describe("talk", () => {
       }),
     );
     expect(events.some((e) => e.type === "action")).toBe(false);
+  });
+
+  it("signale une réplique coupée par le plafond de tokens", async () => {
+    const events = await collect(
+      talk({
+        stream: fakeStream("Quant à le", [], "max_tokens"),
+        model: "test",
+        npc: "claude",
+        message: "Comment battre Brutus ?",
+        history: [],
+        game,
+        mood: readMood({}),
+      }),
+    );
+    expect(events.at(-1)).toEqual({ type: "done", data: { cut: true } });
+  });
+
+  it("demande une didascalie à la troisième personne", () => {
+    expect(systemPrompt("claude", game, readMood({}))).toContain("troisième personne");
   });
 });

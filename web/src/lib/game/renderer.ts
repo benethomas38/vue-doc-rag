@@ -25,19 +25,33 @@ function hash(x: number, y: number, floor: number): number {
   return ((h ^ (h >>> 16)) >>> 0) / 4294967296;
 }
 
+/** Minicarte : petite dans un coin, grande au centre, ou masquée (touche M). */
+export type MinimapMode = "petite" | "grande" | "off";
+
 export class Renderer {
   private ctx: CanvasRenderingContext2D;
   private state: GameState | null = null;
   private live: LiveFx[] = [];
   private frame = 0;
   private reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+  /** Nombre de cases affichées : 21 × 15 par défaut, davantage en grand écran. */
+  viewW = VIEW_W;
+  viewH = VIEW_H;
+  minimap: MinimapMode = "petite";
 
   constructor(private canvas: HTMLCanvasElement) {
-    const dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width = VIEW_W * TILE * dpr;
-    canvas.height = VIEW_H * TILE * dpr;
     this.ctx = canvas.getContext("2d")!;
-    this.ctx.scale(dpr, dpr);
+    this.setView(VIEW_W, VIEW_H);
+  }
+
+  /** Change le nombre de cases visibles (grand écran : on voit plus loin, au lieu de voir plus gros). */
+  setView(w: number, h: number) {
+    this.viewW = Math.max(VIEW_W, Math.min(W, w));
+    this.viewH = Math.max(VIEW_H, Math.min(H, h));
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    this.canvas.width = this.viewW * TILE * dpr;
+    this.canvas.height = this.viewH * TILE * dpr;
+    this.ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     this.ctx.imageSmoothingEnabled = false;
   }
 
@@ -79,16 +93,16 @@ export class Renderer {
   tileAt(clientX: number, clientY: number): { x: number; y: number } | null {
     if (!this.state) return null;
     const rect = this.canvas.getBoundingClientRect();
-    const vx = Math.floor(((clientX - rect.left) / rect.width) * VIEW_W);
-    const vy = Math.floor(((clientY - rect.top) / rect.height) * VIEW_H);
+    const vx = Math.floor(((clientX - rect.left) / rect.width) * this.viewW);
+    const vy = Math.floor(((clientY - rect.top) / rect.height) * this.viewH);
     const { cx, cy } = this.camera();
     return { x: cx + vx, y: cy + vy };
   }
 
   private camera(): { cx: number; cy: number } {
     const { hero } = this.state!;
-    const cx = Math.max(0, Math.min(W - VIEW_W, hero.x - Math.floor(VIEW_W / 2)));
-    const cy = Math.max(0, Math.min(H - VIEW_H, hero.y - Math.floor(VIEW_H / 2)));
+    const cx = Math.max(0, Math.min(W - this.viewW, hero.x - Math.floor(this.viewW / 2)));
+    const cy = Math.max(0, Math.min(H - this.viewH, hero.y - Math.floor(this.viewH / 2)));
     return { cx, cy };
   }
 
@@ -104,15 +118,15 @@ export class Renderer {
 
     ctx.save();
     ctx.fillStyle = "#07060b";
-    ctx.fillRect(0, 0, VIEW_W * TILE, VIEW_H * TILE);
+    ctx.fillRect(0, 0, this.viewW * TILE, this.viewH * TILE);
     ctx.translate(sx, sy);
 
     const { cx, cy } = this.camera();
     const pal = FLOORS[state.floor - 1].palette;
 
     // 1. Le décor
-    for (let vy = 0; vy < VIEW_H; vy++) {
-      for (let vx = 0; vx < VIEW_W; vx++) {
+    for (let vy = 0; vy < this.viewH; vy++) {
+      for (let vx = 0; vx < this.viewW; vx++) {
         const x = cx + vx;
         const y = cy + vy;
         const i = idx(x, y);
@@ -162,7 +176,7 @@ export class Renderer {
       }
     }
 
-    const onScreen = (x: number, y: number) => x >= cx && y >= cy && x < cx + VIEW_W && y < cy + VIEW_H;
+    const onScreen = (x: number, y: number) => x >= cx && y >= cy && x < cx + this.viewW && y < cy + this.viewH;
     const visible = (x: number, y: number) => state.visible[idx(x, y)] === 1;
     const pos = (x: number, y: number) => [(x - cx) * TILE, (y - cy) * TILE] as const;
 
@@ -178,12 +192,9 @@ export class Renderer {
       if (!visible(n.x, n.y) || !onScreen(n.x, n.y)) continue;
       const [px, py] = pos(n.x, n.y);
       this.sprite(n.id === "morgrath" ? "liche" : n.id, px, py - bob * 2);
-      // Bulle « ! » au-dessus des PNJ qui ont encore des choses à dire
-      if (!state.memory[n.id].done) {
-        ctx.fillStyle = "#ffd23f";
-        ctx.fillRect(px + 26, py - 6 - bob * 2, 4, 8);
-        ctx.fillRect(px + 26, py + 4 - bob * 2, 4, 3);
-      }
+      // Bulle de dialogue blanche au-dessus des PNJ qui ont encore des choses à dire.
+      // Volontairement différente de tout sprite d'ennemi : aucun monstre n'a de bulle.
+      if (!state.memory[n.id].done) this.speechBubble(px + TILE / 2, py - 14 - bob * 2);
     }
     for (const e of state.enemies) {
       if (!visible(e.x, e.y) || !onScreen(e.x, e.y)) continue;
@@ -195,8 +206,8 @@ export class Renderer {
 
     // 4. Pénombre sur ce qui est mémorisé mais plus visible
     ctx.fillStyle = "rgba(7,6,11,0.55)";
-    for (let vy = 0; vy < VIEW_H; vy++) {
-      for (let vx = 0; vx < VIEW_W; vx++) {
+    for (let vy = 0; vy < this.viewH; vy++) {
+      for (let vx = 0; vx < this.viewW; vx++) {
         const i = idx(cx + vx, cy + vy);
         if (state.explored[i] && !state.visible[i]) ctx.fillRect(vx * TILE, vy * TILE, TILE, TILE);
       }
@@ -209,7 +220,7 @@ export class Renderer {
     glow.addColorStop(0.6, "rgba(0,0,0,0)");
     glow.addColorStop(1, "rgba(0,0,0,0.4)");
     ctx.fillStyle = glow;
-    ctx.fillRect(0, 0, VIEW_W * TILE, VIEW_H * TILE);
+    ctx.fillRect(0, 0, this.viewW * TILE, this.viewH * TILE);
 
     // 5. Effets
     for (const { fx, start } of this.live) {
@@ -247,12 +258,69 @@ export class Renderer {
       }
     }
     ctx.restore();
+    this.drawMinimap();
   }
 
   private sprite(key: string, px: number, py: number, scale = 1) {
     const size = TILE * scale;
     const offset = (TILE - size) / 2;
     this.ctx.drawImage(spriteCanvas(key), px + offset, py + offset, size, size);
+  }
+
+  /** Petite bulle blanche cerclée de noir, avec un « ! », pointe vers le bas. */
+  private speechBubble(cx: number, top: number) {
+    const ctx = this.ctx;
+    const x = Math.round(cx - 8);
+    ctx.fillStyle = "#14101c";
+    ctx.fillRect(x - 2, top - 2, 20, 16);
+    ctx.fillRect(x + 4, top + 14, 8, 2);
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(x, top, 16, 12);
+    ctx.fillRect(x + 6, top + 12, 4, 2);
+    ctx.fillStyle = "#14101c";
+    ctx.fillRect(x + 7, top + 2, 2, 5);
+    ctx.fillRect(x + 7, top + 8, 2, 2);
+  }
+
+  /** Minicarte de l'étage : ce qui a été exploré, le héros, l'escalier, les PNJ. */
+  private drawMinimap() {
+    const state = this.state!;
+    const ctx = this.ctx;
+    if (this.minimap === "off") return;
+    const big = this.minimap === "grande";
+    const viewPxW = this.viewW * TILE;
+    const viewPxH = this.viewH * TILE;
+    const cell = big ? Math.floor(Math.min((viewPxW - 40) / W, (viewPxH - 40) / H)) : 3;
+    const mw = W * cell;
+    const mh = H * cell;
+    const ox = big ? Math.round((viewPxW - mw) / 2) : viewPxW - mw - 8;
+    const oy = big ? Math.round((viewPxH - mh) / 2) : 8;
+    ctx.fillStyle = big ? "rgba(7,6,11,0.92)" : "rgba(7,6,11,0.7)";
+    ctx.fillRect(ox - 4, oy - 4, mw + 8, mh + 8);
+    const pal = FLOORS[state.floor - 1].palette;
+    for (let y = 0; y < H; y++) {
+      for (let x = 0; x < W; x++) {
+        const i = idx(x, y);
+        if (!state.explored[i] || state.tiles[i] === WALL) continue;
+        ctx.fillStyle = state.visible[i] ? pal.wallTop : pal.wall;
+        ctx.fillRect(ox + x * cell, oy + y * cell, cell, cell);
+      }
+    }
+    const dot = (x: number, y: number, color: string, grow = 0) => {
+      ctx.fillStyle = color;
+      ctx.fillRect(ox + x * cell - grow, oy + y * cell - grow, cell + grow * 2, cell + grow * 2);
+    };
+    if (state.explored[idx(state.stairs.x, state.stairs.y)]) dot(state.stairs.x, state.stairs.y, "#ffffff", 1);
+    for (const c of state.chests) if (!c.opened && state.explored[idx(c.x, c.y)]) dot(c.x, c.y, "#ffb627");
+    for (const n of state.npcs) if (state.explored[idx(n.x, n.y)]) dot(n.x, n.y, "#ffd23f", 1);
+    for (const e of state.enemies) if (state.visible[idx(e.x, e.y)]) dot(e.x, e.y, "#e8434a");
+    dot(state.hero.x, state.hero.y, "#49c0b2", 1);
+    if (big) {
+      ctx.font = "700 13px 'JetBrains Mono', monospace";
+      ctx.textAlign = "center";
+      ctx.fillStyle = "#c9d1d9";
+      ctx.fillText("Carte · blanc : escalier, jaune : personnage · M pour fermer", viewPxW / 2, oy + mh + 18 > viewPxH ? oy - 10 : oy + mh + 18);
+    }
   }
 
   private tint(px: number, py: number, color: string) {
@@ -275,6 +343,15 @@ export class Renderer {
       ctx.fillRect(px + 2, py - 2, 12, 4);
       ctx.fillRect(px + 2, py - 6, 4, 4);
       ctx.fillRect(px + 10, py - 6, 4, 4);
+    }
+    if (e.stolen > 0) {
+      // Le chapardeur en fuite traîne ta bourse : un sac doré bien visible
+      ctx.fillStyle = "#14101c";
+      ctx.fillRect(px + 18, py + 14, 12, 12);
+      ctx.fillStyle = "#ffd23f";
+      ctx.fillRect(px + 20, py + 16, 8, 8);
+      ctx.fillStyle = "#c9971c";
+      ctx.fillRect(px + 22, py + 14, 4, 3);
     }
     if (e.status.gel) this.tint(px, py, "rgba(155,231,255,0.45)");
     if (e.status.brulure && Math.floor(now / 150) % 2) {

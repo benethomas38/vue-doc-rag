@@ -14,6 +14,7 @@ export interface FloorDef {
   traps: number;
   npcs: NpcId[];         // personnages de l'étage
   elites: number;        // ennemis d'élite (plus forts, butin garanti)
+  thieves: number;       // gobelins chapardeurs au plus (au-delà, l'étage devient une loterie)
   palette: {
     floor: string;
     floorAlt: string;
@@ -25,27 +26,27 @@ export interface FloorDef {
 
 export const FLOORS: FloorDef[] = [
   {
-    level: 1, name: "Les Caves humides", vision: 7, enemies: 10, traps: 2, elites: 1, npcs: ["claude", "grizzle"],
+    level: 1, name: "Les Caves humides", vision: 7, enemies: 10, traps: 2, elites: 1, thieves: 1, npcs: ["claude", "grizzle"],
     intro: "Ça sent le moisi et la mauvaise affaire. Quelque part, un gobelin compte ses pièces.",
     palette: { floor: "#363441", floorAlt: "#3c3a48", wall: "#4f4760", wallTop: "#7a6f92", accent: "#3f6b4a" },
   },
   {
-    level: 2, name: "Les Catacombes", vision: 6, enemies: 12, traps: 4, elites: 1, npcs: ["osvald"],
+    level: 2, name: "Les Catacombes", vision: 6, enemies: 12, traps: 4, elites: 1, thieves: 1, npcs: ["osvald"],
     intro: "Des os partout. Certains bougent encore. L'un d'eux soupire.",
     palette: { floor: "#38332c", floorAlt: "#3e3830", wall: "#5e5443", wallTop: "#8c7f64", accent: "#e8e0c8" },
   },
   {
-    level: 3, name: "La Forge engloutie", vision: 7, enemies: 13, traps: 5, elites: 2, npcs: ["grizzle", "brutus"],
+    level: 3, name: "La Forge engloutie", vision: 7, enemies: 13, traps: 5, elites: 2, thieves: 1, npcs: ["grizzle", "brutus"],
     intro: "La chaleur te gifle. Grizzle a rouvert boutique ici, et l'escalier est gardé par une armoire à glace en armure.",
     palette: { floor: "#3b2c28", floorAlt: "#43312c", wall: "#663a2d", wallTop: "#9c5436", accent: "#ff7a1a" },
   },
   {
-    level: 4, name: "La Bibliothèque interdite", vision: 6, enemies: 14, traps: 6, elites: 2, npcs: ["sphinx"],
+    level: 4, name: "La Bibliothèque interdite", vision: 6, enemies: 14, traps: 6, elites: 2, thieves: 0, npcs: ["sphinx"],
     intro: "Des livres chuchotent dans le noir. Un sphinx t'attend avec une question.",
     palette: { floor: "#2d2943", floorAlt: "#332e4b", wall: "#453b6c", wallTop: "#6858a0", accent: "#b48cff" },
   },
   {
-    level: 5, name: "Le Trône de la liche", vision: 6, enemies: 11, traps: 6, elites: 2, npcs: ["morgrath"],
+    level: 5, name: "Le Trône de la liche", vision: 6, enemies: 11, traps: 6, elites: 2, thieves: 0, npcs: ["morgrath"],
     intro: "Le froid te glace les os. Au fond, sur un trône, quelqu'un t'attend depuis le début.",
     palette: { floor: "#24302c", floorAlt: "#293631", wall: "#35544a", wallTop: "#4f7e6c", accent: "#7cff6b" },
   },
@@ -80,11 +81,11 @@ export const NPCS: Record<NpcId, NpcInfo> = {
     quick: [
       {
         label: "Les commandes",
-        text: "Flèches, ZQSD ou WASD pour bouger, et fonce dans un ennemi pour l'attaquer. Diagonales : pavé numérique, ou clique sur le donjon. Espace puis une direction (ou Maj + direction) : saut de 2 cases. Entrée ou E : parler, descendre l'escalier. 1 à 9 : utiliser un objet du sac. R : attendre. F : grand écran.",
+        text: "Flèches, ZQSD ou WASD pour bouger, et fonce dans un ennemi pour l'attaquer. Diagonales : pavé numérique, ou clique sur le donjon. Espace puis une direction (ou Maj + direction) : saut de 2 cases. Entrée ou E : parler, descendre l'escalier. 1 à 9 : utiliser un objet du sac. R : attendre. M : minicarte. F : grand écran, pour voir plus loin. Et un clic sur une case déjà vue t'y emmène tout seul.",
       },
       {
         label: "Les règles",
-        text: "Cinq étages, et Morgrath la liche tout en bas. C'est du tour par tour : rien ne bouge tant que tu ne bouges pas. Les ennemis marqués d'une couronne sont des élites, plus costauds mais avec un butin garanti. Les PV remontent doucement quand aucun ennemi n'est en vue. Les personnages avec un « ! » te répondent vraiment : écris-leur ce que tu veux.",
+        text: "Cinq étages, et Morgrath la liche tout en bas. C'est du tour par tour : rien ne bouge tant que tu ne bouges pas. Les ennemis marqués d'une couronne sont des élites, plus costauds mais avec un butin garanti. Les PV remontent doucement quand aucun ennemi n'est en vue. Les personnages avec une bulle blanche « ! » te répondent vraiment : écris-leur ce que tu veux. Ta partie est sauvegardée à chaque tour.",
       },
       {
         label: "L'attaque sournoise",
@@ -92,7 +93,7 @@ export const NPCS: Record<NpcId, NpcInfo> = {
       },
       {
         label: "Un conseil",
-        text: "Ne te jette pas sur tout ce qui bouge. Attire les monstres dans un couloir, frappe depuis les coins, saute par-dessus les gros lents. Garde tes potions pour les élites, et de l'or pour Grizzle : il rouvre boutique au troisième étage, avec de meilleures pièces.",
+        text: "Ne te jette pas sur tout ce qui bouge. Attire les monstres dans un couloir, frappe depuis les coins, saute par-dessus les gros lents. Garde tes potions pour les élites, et de l'or pour Grizzle : il rouvre boutique au troisième étage, avec de meilleures pièces. Et si un gobelin te vole, cours-lui après : ta bourse le ralentit.",
       },
     ],
   },

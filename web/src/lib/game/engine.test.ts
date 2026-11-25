@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
-import { act, applyNpcAction, buy, createGame, enemyAt, heroStats, payBrutus, summarize, type GameState } from "./engine";
+import { act, applyNpcAction, buy, createGame, deserialize, enemyAt, heroStats, pathTo, payBrutus, serialize, summarize, type GameState } from "./engine";
 import { distanceMap, FLOOR, H, idx, STAIRS, W, WALL } from "./dungeon";
-import { enemyDef } from "./data/enemies";
+import { enemyDef, of, the } from "./data/enemies";
+import { FLOORS } from "./data/world";
 import { int } from "./rng";
 
 /** Joue une partie au hasard pendant `turns` tours : le moteur ne doit jamais planter. */
@@ -190,5 +191,85 @@ describe("équilibre", () => {
     }
     expect(state.npcs.some((n) => n.id === "grizzle")).toBe(true);
     expect(state.shop.some((s) => s.item.id === "excalibouse" || s.item.id === "armure_paladin")).toBe(true);
+  });
+});
+
+describe("retours de test (v2)", () => {
+  const descend = (state: GameState) => {
+    state.hero.x = state.stairs.x;
+    state.hero.y = state.stairs.y;
+    state.stairsLocked = false;
+    act(state, { type: "descend" });
+  };
+
+  it("plafonne les gobelins chapardeurs à chaque étage", () => {
+    for (let seed = 1; seed <= 60; seed++) {
+      const state = createGame(seed, "Test");
+      for (let floor = 1; floor <= FLOORS.length; floor++) {
+        if (floor > 1) descend(state);
+        const thieves = state.enemies.filter((e) => e.id === "gobelin_voleur").length;
+        expect(thieves).toBeLessThanOrEqual(FLOORS[floor - 1].thieves);
+      }
+    }
+  });
+
+  it("accorde les noms d'ennemis dans le journal", () => {
+    expect(the(enemyDef("gelee"))).toBe("la gelée verte");
+    expect(the(enemyDef("archer_squelette"))).toBe("l'archer squelette");
+    expect(of(enemyDef("chauve_souris"))).toBe("de la chauve-souris");
+    expect(of(enemyDef("rat"))).toBe("du rat géant");
+    expect(the(enemyDef("brutus"))).toBe("Brutus");
+  });
+
+  it("laisse marcher sur un coffre ouvert", () => {
+    const state = createGame(11, "Test");
+    state.enemies = [];
+    state.npcs = [];
+    state.tiles[idx(10, 10)] = FLOOR;
+    state.tiles[idx(11, 10)] = FLOOR;
+    state.hero.x = 10;
+    state.hero.y = 10;
+    state.chests = [{ x: 11, y: 10, opened: false }];
+    act(state, { type: "move", dx: 1, dy: 0 }); // ouvre
+    expect(state.hero.x).toBe(10);
+    act(state, { type: "move", dx: 1, dy: 0 }); // passe
+    expect(state.hero.x).toBe(11);
+  });
+
+  it("ne laisse jamais le guide boucher un passage", () => {
+    for (let seed = 1; seed <= 60; seed++) {
+      const state = createGame(seed, "Test");
+      const guide = state.npcs.find((n) => n.id === "claude")!;
+      const count = (d: Int16Array) => d.reduce((n, v) => n + (v >= 0 ? 1 : 0), 0);
+      const open = count(distanceMap(state.tiles, state.hero));
+      const blocked = count(distanceMap(state.tiles, state.hero, (x, y) => x === guide.x && y === guide.y));
+      expect(blocked).toBe(open - 1);
+    }
+  });
+
+  it("trouve un chemin vers une case explorée", () => {
+    const state = createGame(8, "Test");
+    state.enemies = [];
+    const target = { x: state.hero.x, y: state.hero.y };
+    for (let i = 0; i < state.explored.length; i++) {
+      if (state.explored[i] && state.tiles[i] !== WALL && !state.npcs.some((n) => idx(n.x, n.y) === i) && !state.chests.some((c) => idx(c.x, c.y) === i)) {
+        target.x = i % W;
+        target.y = Math.floor(i / W);
+      }
+    }
+    const path = pathTo(state, target);
+    expect(path.length).toBeGreaterThanOrEqual(1);
+    for (const [dx, dy] of path) act(state, { type: "move", dx, dy });
+    expect(`${state.hero.x},${state.hero.y}`).toBe(`${target.x},${target.y}`);
+  });
+
+  it("sauvegarde et recharge une partie à l'identique", () => {
+    const state = createGame(77, "Sauvé");
+    randomPlay(state, 120);
+    if (state.status !== "playing") return;
+    const copy = deserialize(serialize(state))!;
+    expect(copy.hero.gold).toBe(state.hero.gold);
+    expect(serialize(copy)).toBe(serialize(state));
+    expect(deserialize("{abîmé")).toBe(null);
   });
 });

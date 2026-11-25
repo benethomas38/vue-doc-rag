@@ -20,7 +20,7 @@ export function createGameRouter(opts: GameRouterOptions) {
   const router = Router();
   const dailyQuota = createDailyQuota(opts.perDay);
 
-  // Une réplique = un appel à Claude, court (300 tokens max) : les limites sont plus larges que pour le RAG
+  // Une réplique = un appel à Claude, court (1 à 3 phrases, 1024 tokens max) : les limites sont plus larges que pour le RAG
   const perVisitor = rateLimit({
     windowMs: 60 * 60 * 1000,
     limit: opts.perHour,

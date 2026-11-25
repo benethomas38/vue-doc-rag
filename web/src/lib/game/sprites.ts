@@ -64,9 +64,9 @@ export const SPRITES: Record<string, SpriteRows> = {
     ".NggggN.",
     "ggkggkgg",
     "..gggg..",
-    ".NNNNN.y",
-    "g.NNN.yy",
-    "..NNN.yy",
+    ".NNNNN.l",
+    "g.NNN.ld",
+    "..NNN.d.",
     "..g..g..",
   ],
   squelette: [

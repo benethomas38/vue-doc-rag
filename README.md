@@ -50,7 +50,8 @@ Un jeu d'exploration de donjon en pixel art, au tour par tour (`/projets/donjon`
    Claude répond en streaming dans la peau du personnage et peut appeler **un** outil
    (`ajuster_prix`, `laisser_passer`, `juger_reponse`…). Le serveur valide l'appel, puis le
    moteur le borne : l'IA propose, le moteur dispose.
-4. **Coûts** : 300 tokens max par réplique, nombre de répliques limité par PNJ et par partie,
+4. **Coûts** : réponses de 1 à 3 phrases (plafond technique de 1024 tokens, pour que l'appel d'outil
+   ne soit jamais coupé), nombre de répliques limité par PNJ et par partie,
    limite par visiteur et par heure, plafond par jour. Sans l'IA, le jeu reste jouable.
 
 ## Lancer le projet en local

@@ -10,7 +10,7 @@ import {
   type Point, type Room,
 } from "./dungeon";
 import { chance, int, pick, random, shuffle, weighted, type RngState } from "./rng";
-import { ENEMIES, enemyDef, type EnemyDef } from "./data/enemies";
+import { agree, capitalize, ENEMIES, enemyDef, of, pronoun, the, type EnemyDef } from "./data/enemies";
 import { ITEMS, itemDef, isEquipment, slotOf, type ItemDef, type Rarity, type Slot, type Special } from "./data/items";
 import { FLOORS, NPCS, type NpcId } from "./data/world";
 
@@ -268,7 +268,15 @@ export function isFree(state: GameState, x: number, y: number): boolean {
 function canEnter(state: GameState, x: number, y: number): boolean {
   if (!inBounds(x, y) || state.tiles[idx(x, y)] === WALL) return false;
   if (state.hero.x === x && state.hero.y === y) return false;
-  return !enemyAt(state, x, y) && !npcAt(state, x, y) && !state.chests.some((c) => c.x === x && c.y === y);
+  return !enemyAt(state, x, y) && !npcAt(state, x, y) && !closedChestAt(state, x, y);
+}
+
+/** Vrai si poser quelqu'un en `spot` coupe une partie de l'étage (un PNJ planté dans un couloir étroit). */
+function blocksPassage(state: GameState, from: Point, spot: Point): boolean {
+  const count = (d: Int16Array) => d.reduce((n, v) => n + (v >= 0 ? 1 : 0), 0);
+  const open = count(distanceMap(state.tiles, from));
+  const blocked = count(distanceMap(state.tiles, from, (x, y) => x === spot.x && y === spot.y));
+  return blocked < open - 1;
 }
 
 function freeSpot(state: GameState, room: Room, margin = 0): Point | null {
@@ -336,13 +344,15 @@ function enterFloor(state: GameState, level: number) {
   for (const id of floorDef.npcs) {
     let spot: Point | null = null;
     if (id === "claude") {
-      // Le guide attend juste à côté de l'entrée
-      for (const [dx, dy] of NEIGHBORS) {
-        if (isFree(state, map.start.x + dx * 2, map.start.y + dy) ) {
-          spot = { x: map.start.x + dx * 2, y: map.start.y + dy };
+      // Le guide attend juste à côté de l'entrée, sans jamais boucher un couloir
+      for (const [dx, dy] of [...NEIGHBORS, ...NEIGHBORS.map(([a, b]) => [a * 2, b] as const)]) {
+        const p = { x: map.start.x + dx, y: map.start.y + dy };
+        if (isFree(state, p.x, p.y) && !blocksPassage(state, map.start, p)) {
+          spot = p;
           break;
         }
       }
+      spot ??= freeSpot(state, map.rooms[map.startRoom]);
     } else if (id === "brutus") {
       // Brutus se poste juste à côté de l'escalier
       for (const [dx, dy] of NEIGHBORS) {
@@ -358,7 +368,7 @@ function enterFloor(state: GameState, level: number) {
       const used = new Set(state.npcs.map((n) => state.rooms.findIndex((r) => n.x >= r.x && n.x < r.x + r.w && n.y >= r.y && n.y < r.y + r.h)));
       const free = others.filter((i) => !used.has(i));
       const room = map.rooms[free[Math.floor(free.length / 2)] ?? map.exitRoom];
-      spot = isFree(state, center(room).x, center(room).y) ? center(room) : freeSpot(state, room, 1);
+      spot = isFree(state, center(room).x, center(room).y) && !blocksPassage(state, map.start, center(room)) ? center(room) : freeSpot(state, room, 1);
     }
     if (spot) state.npcs.push({ id, x: spot.x, y: spot.y });
     if (id === "grizzle") {
@@ -370,10 +380,17 @@ function enterFloor(state: GameState, level: number) {
 
   // Ennemis : jamais dans la salle de départ, ni dans la salle du trône
   const pool = ENEMIES.filter((e) => e.floors.includes(level));
+  const noThief = pool.filter((e) => e.behavior !== "thief");
+  let thieves = 0;
   for (let n = 0; n < floorDef.enemies; n++) {
     const room = map.rooms[pick(state, others.length ? others : [map.exitRoom])];
     const p = freeSpot(state, room);
-    if (p) spawnEnemy(state, pick(state, pool), p.x, p.y);
+    if (!p) continue;
+    // Un chapardeur, ça pimente l'étage ; trois, ça le ruine : on plafonne
+    let def = pick(state, pool);
+    if (def.behavior === "thief" && thieves >= floorDef.thieves) def = pick(state, noThief);
+    if (def.behavior === "thief") thieves++;
+    spawnEnemy(state, def, p.x, p.y);
   }
   if (final) {
     // Deux chevaliers montent la garde devant le trône
@@ -475,8 +492,13 @@ export function sellPrice(def: ItemDef): number {
   return Math.max(1, Math.floor(def.price * 0.4));
 }
 
+/** Un coffre fermé bloque le passage ; une fois ouvert, on marche dessus (sinon il bouche les couloirs). */
+export const closedChestAt = (s: GameState, x: number, y: number) => s.chests.find((c) => c.x === x && c.y === y && !c.opened);
 export const enemyAt = (s: GameState, x: number, y: number) => s.enemies.find((e) => e.x === x && e.y === y);
 export const npcAt = (s: GameState, x: number, y: number) => s.npcs.find((n) => n.x === x && n.y === y);
+/** « le gobelin chapardeur », « la gelée verte d'élite », « Brutus » : pour le journal. */
+const nameOf = (e: Enemy) => the(enemyDef(e.id), e.name);
+const NameOf = (e: Enemy) => capitalize(nameOf(e));
 const dist = (a: Point, b: Point) => Math.max(Math.abs(a.x - b.x), Math.abs(a.y - b.y));
 
 /** Ligne de vue : aucune case de mur entre les deux points (algorithme de Bresenham). */
@@ -688,15 +710,16 @@ function killEnemy(state: GameState, enemy: Enemy) {
   state.enemies = state.enemies.filter((e) => e !== enemy);
   state.kills[def.id] = (state.kills[def.id] ?? 0) + 1;
   const xp = enemy.elite ? def.xp * 2 : def.xp;
-  log(state, `${enemy.name} est vaincu. +${xp} XP.`, enemy.elite ? "rare" : "good");
+  log(state, `${NameOf(enemy)} est ${agree(def, "vaincu")}. +${xp} XP.`, enemy.elite ? "rare" : "good");
   gainXp(state, xp);
 
   const gold = int(state, def.gold[0], def.gold[1]) + enemy.stolen;
   if (gold > 0) state.golds.push({ x: enemy.x, y: enemy.y, amount: gold });
+  if (enemy.stolen > 0) log(state, `Il lâche ta bourse : tes ${enemy.stolen} pièces sont par terre.`, "loot");
   if (enemy.elite) {
     state.stats.elites++;
     state.items.push({ x: enemy.x, y: enemy.y, item: rollItem(state, state.floor, 1) });
-    remember(state, `A terrassé ${enemy.name} à l'étage ${state.floor}`);
+    remember(state, `A terrassé ${nameOf(enemy)} à l'étage ${state.floor}`);
   } else if (!enemy.summoned && chance(state, 0.07)) {
     state.items.push({ x: enemy.x, y: enemy.y, item: rollItem(state, state.floor) });
   }
@@ -736,7 +759,7 @@ function heroAttack(state: GameState, enemy: Enemy, fromCorner = false) {
   if (sneak) {
     const dmg = Math.ceil((Math.max(1, s.atk + int(state, 0, 2) - enemy.def)) * 1.6);
     state.stats.sneaks++;
-    log(state, `Attaque sournoise sur ${enemy.name} : ${dmg} dégâts !`, "good");
+    log(state, `Attaque sournoise sur ${nameOf(enemy)} : ${dmg} dégâts !`, "good");
     if (state.stats.sneaks === 5) remember(state, "Maîtrise l'attaque sournoise depuis les angles de mur");
     applyWeaponSpecials(state, enemy, dmg);
     damageEnemy(state, enemy, dmg, "#d0b0ff");
@@ -744,7 +767,7 @@ function heroAttack(state: GameState, enemy: Enemy, fromCorner = false) {
   }
   if (random(state) * 100 < Math.min(45, enemy.agi)) {
     state.fx.push({ kind: "text", x: enemy.x, y: enemy.y, text: "esquive", color: "#9aa5b1" });
-    log(state, `${enemy.name} esquive ton coup.`);
+    log(state, `${NameOf(enemy)} esquive ton coup.`);
     enemy.awake = true;
     return;
   }
@@ -752,7 +775,7 @@ function heroAttack(state: GameState, enemy: Enemy, fromCorner = false) {
   const crit = random(state) * 100 < Math.min(35, s.agi * 1.2);
   if (crit) dmg *= 2;
   if (enemy.stunned > 0) dmg += 2;
-  log(state, `Tu frappes ${enemy.name} : ${dmg} dégâts${crit ? " (CRITIQUE !)" : ""}.`);
+  log(state, `Tu frappes ${nameOf(enemy)} : ${dmg} dégâts${crit ? " (CRITIQUE !)" : ""}.`);
   applyWeaponSpecials(state, enemy, dmg);
   damageEnemy(state, enemy, dmg, crit ? "#ffb627" : "#ffffff");
 }
@@ -762,11 +785,11 @@ function applyWeaponSpecials(state: GameState, enemy: Enemy, dmg: number) {
   if (s.specials.has("vampire")) heal(state, Math.max(1, Math.round(dmg * 0.25)));
   if (s.specials.has("gel") && chance(state, 0.2)) {
     enemy.status.gel = 2;
-    log(state, `${enemy.name} est gelé !`, "good");
+    log(state, `${NameOf(enemy)} est ${agree(enemyDef(enemy.id), "gelé")} !`, "good");
   }
   if (s.specials.has("brulure") && chance(state, 0.25)) {
     enemy.status.brulure = 3;
-    log(state, `${enemy.name} prend feu !`, "good");
+    log(state, `${NameOf(enemy)} prend feu !`, "good");
   }
 }
 
@@ -791,12 +814,12 @@ function enemyAttack(state: GameState, enemy: Enemy, ranged = false) {
 
   if (random(state) * 100 < Math.min(45, s.agi)) {
     state.fx.push({ kind: "text", x: state.hero.x, y: state.hero.y, text: "esquive", color: "#9aa5b1" });
-    log(state, `Tu esquives ${ranged ? "le tir" : "l'attaque"} de ${enemy.name}.`);
+    log(state, `Tu esquives ${ranged ? "le tir" : "l'attaque"} ${of(def, enemy.name)}.`);
     return;
   }
   const dmg = Math.max(1, enemy.atk + int(state, -1, 1) - s.def);
-  log(state, `${enemy.name} ${ranged ? "te tire dessus" : "te frappe"} : ${dmg} dégâts.`, "bad");
-  hurtHero(state, dmg, enemy.name);
+  log(state, `${NameOf(enemy)} ${ranged ? "te tire dessus" : "te frappe"} : ${dmg} dégâts.`, "bad");
+  hurtHero(state, dmg, nameOf(enemy));
 
   if (def.power === "poison" && chance(state, 0.35)) {
     state.hero.status.poison = Math.max(state.hero.status.poison, 5);
@@ -877,12 +900,14 @@ function enemyAct(state: GameState, enemy: Enemy, toHero: Int16Array) {
       return;
     }
     if (d <= 1 && hero.gold > 0) {
-      const amount = Math.min(hero.gold, int(state, 6, 14) + state.floor * 3);
+      // Il pioche dans la bourse (40 % environ), plafonné selon l'étage : ça pique sans ruiner
+      const cap = 10 + state.floor * 5;
+      const amount = Math.min(hero.gold, cap, Math.max(int(state, 4, 8), Math.round(hero.gold * 0.4)));
       hero.gold -= amount;
       enemy.stolen = amount;
-      enemy.fleeTurns = 10;
+      enemy.fleeTurns = 8;
       state.fx.push({ kind: "text", x: hero.x, y: hero.y, text: `-${amount} or`, color: "#ffb627" });
-      log(state, `Le gobelin te vole ${amount} pièces d'or et s'enfuit en ricanant !`, "bad");
+      log(state, `Le gobelin te vole ${amount} pièces d'or et s'enfuit, alourdi par ta bourse. Rattrape-le !`, "bad");
       return;
     }
   }
@@ -917,7 +942,7 @@ function enemyAct(state: GameState, enemy: Enemy, toHero: Int16Array) {
         enemy.x = p.x;
         enemy.y = p.y;
         enemy.cooldown = 5;
-        log(state, `${enemy.name} se téléporte !`, "bad");
+        log(state, `${NameOf(enemy)} se téléporte !`, "bad");
         return;
       }
     }
@@ -988,6 +1013,8 @@ function endTurn(state: GameState) {
     if (enemy.status.gel > 0) { enemy.status.gel--; continue; }
     if (enemy.stunned > 0) { enemy.stunned--; continue; }
     if (def.speed === 0.5 && (state.turn + enemy.uid) % 2 === 0) continue;
+    // Le chapardeur chargé de ton or traîne la patte : un pas tous les deux tours
+    if (def.behavior === "thief" && enemy.stolen > 0 && state.turn % 2 === 0) continue;
     const actions = def.speed === 2 ? 2 : 1;
     for (let a = 0; a < actions && state.enemies.includes(enemy) && state.status === "playing"; a++) {
       enemyAct(state, enemy, toHero);
@@ -1096,12 +1123,10 @@ export function act(state: GameState, cmd: Command): ActResult {
         endTurn(state);
         return {};
       }
-      const chest = state.chests.find((c) => c.x === nx && c.y === ny);
+      const chest = closedChestAt(state, nx, ny);
       if (chest) {
-        if (!chest.opened) {
-          openChest(state, chest);
-          endTurn(state);
-        }
+        openChest(state, chest);
+        endTurn(state);
         return {};
       }
       h.x = nx;
@@ -1126,7 +1151,7 @@ export function act(state: GameState, cmd: Command): ActResult {
         log(state, "Pas d'appui pour sauter par là.");
         return {};
       }
-      if (enemyAt(state, lx, ly) || npcAt(state, lx, ly) || state.chests.some((c) => c.x === lx && c.y === ly)) {
+      if (enemyAt(state, lx, ly) || npcAt(state, lx, ly) || closedChestAt(state, lx, ly)) {
         log(state, "La réception est occupée.");
         return {};
       }
@@ -1139,7 +1164,8 @@ export function act(state: GameState, cmd: Command): ActResult {
       if (over) {
         over.stunned = 2;
         over.awake = true;
-        log(state, `Saut de chat par-dessus ${over.name} ! Il ne t'a pas vu passer (étourdi 2 tours).`, "good");
+        const overDef = enemyDef(over.id);
+        log(state, `Saut de chat par-dessus ${nameOf(over)} ! ${capitalize(pronoun(overDef))} ne t'a pas vu passer (${agree(overDef, "étourdi")} 2 tours).`, "good");
         remember(state, "A sauté par-dessus un ennemi, comme un vrai traceur");
       } else {
         log(state, "Tu prends ton élan et tu sautes.", "info");
@@ -1422,6 +1448,88 @@ export function npcMood(state: GameState, npc: NpcId) {
 
 export function canTalk(state: GameState, npc: NpcId): boolean {
   return !state.memory[npc].done && state.memory[npc].talks < NPCS[npc].maxTalks;
+}
+
+// --- Déplacement au clic -------------------------------------------------------------------
+
+/**
+ * Chemin le plus court vers une case déjà explorée (parcours en largeur, 8 directions,
+ * angles de mur compris : le héros est un traceur). Évite ennemis, PNJ, coffres fermés et
+ * pièges repérés. La dernière case peut être occupée (on « fonce » dedans : attaque, discussion).
+ * Renvoie la liste des pas [dx, dy], vide si la case est inaccessible.
+ */
+export function pathTo(state: GameState, target: Point, maxLength = 80): [number, number][] {
+  const { hero } = state;
+  if (!inBounds(target.x, target.y) || !state.explored[idx(target.x, target.y)] || state.tiles[idx(target.x, target.y)] === WALL) return [];
+  if (hero.x === target.x && hero.y === target.y) return [];
+  const prev = new Int32Array(W * H).fill(-1);
+  const start = idx(hero.x, hero.y);
+  const goal = idx(target.x, target.y);
+  prev[start] = start;
+  const queue = [start];
+  for (let head = 0; head < queue.length; head++) {
+    const cur = queue[head];
+    if (cur === goal) break;
+    const cx = cur % W;
+    const cy = Math.floor(cur / W);
+    for (const [dx, dy] of NEIGHBORS) {
+      const nx = cx + dx;
+      const ny = cy + dy;
+      if (!inBounds(nx, ny)) continue;
+      const n = idx(nx, ny);
+      if (prev[n] !== -1 || state.tiles[n] === WALL || !state.explored[n]) continue;
+      if (n !== goal) {
+        if (enemyAt(state, nx, ny) || npcAt(state, nx, ny) || closedChestAt(state, nx, ny)) continue;
+        if (state.traps.some((t) => t.found && t.x === nx && t.y === ny)) continue;
+      }
+      prev[n] = cur;
+      queue.push(n);
+    }
+  }
+  if (prev[goal] === -1) return [];
+  const steps: [number, number][] = [];
+  for (let cur = goal; cur !== start; cur = prev[cur]) {
+    const p = prev[cur];
+    steps.push([(cur % W) - (p % W), Math.floor(cur / W) - Math.floor(p / W)]);
+  }
+  steps.reverse();
+  return steps.length > maxLength ? [] : steps;
+}
+
+/** Vrai si un ennemi éveillé est en vue : le déplacement automatique s'arrête. */
+export function inDanger(state: GameState): boolean {
+  return state.enemies.some((e) => state.visible[idx(e.x, e.y)] && (e.awake || dist(e, state.hero) <= 3));
+}
+
+// --- Sauvegarde ----------------------------------------------------------------------
+// L'état tient en JSON, sauf les trois cartes (Uint8Array) qu'on range en texte compact.
+
+export const SAVE_VERSION = 1;
+
+const packTiles = (a: Uint8Array) => Array.from(a, (v) => String.fromCharCode(48 + v)).join("");
+const unpackTiles = (text: string) => Uint8Array.from(text, (c) => c.charCodeAt(0) - 48);
+
+export function serialize(state: GameState): string {
+  const { tiles, explored, visible, fx: _fx, ...rest } = state;
+  void _fx; // les effets visuels en cours ne se sauvegardent pas
+  return JSON.stringify({ v: SAVE_VERSION, ...rest, tiles: packTiles(tiles), explored: packTiles(explored), visible: packTiles(visible) });
+}
+
+/** Relit une sauvegarde ; null si elle est absente, d'une autre version, ou abîmée. */
+export function deserialize(text: string | null): GameState | null {
+  if (!text) return null;
+  try {
+    const raw = JSON.parse(text) as Record<string, unknown>;
+    if (raw.v !== SAVE_VERSION || typeof raw.tiles !== "string" || raw.status !== "playing") return null;
+    const { v: _v, tiles, explored, visible, ...rest } = raw as Record<string, unknown> & { tiles: string; explored: string; visible: string };
+    void _v;
+    const state = { ...(rest as unknown as GameState), tiles: unpackTiles(tiles), explored: unpackTiles(explored), visible: unpackTiles(visible), fx: [] };
+    if (state.tiles.length !== W * H || !state.hero || !FLOORS[state.floor - 1]) return null;
+    computeFov(state);
+    return state;
+  } catch {
+    return null;
+  }
 }
 
 /** Score de fin de partie : la profondeur compte le plus, puis les exploits. */

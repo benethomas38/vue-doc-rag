@@ -68,7 +68,8 @@ export const projects: Project[] = [
     year: "2026",
     image: "/projets/donjon.webp",
     route: "/projets/donjon",
-    repo: "https://github.com/benethomas38/vue-doc-rag",
+    // Tous les projets vivent dans le même dépôt : on pointe directement sur le code du jeu
+    repo: "https://github.com/benethomas38/vue-doc-rag/tree/main/web/src/lib/game",
     demo: true,
   },
   {

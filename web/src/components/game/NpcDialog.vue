@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { nextTick, ref, watch } from "vue";
-import type { DialogLine, SellRow, ShopRow } from "../../lib/game/talk";
+import { splitStageDirections, type DialogLine, type SellRow, type ShopRow } from "../../lib/game/talk";
 import type { NpcInfo, QuickAnswer } from "../../lib/game/data/world";
 import { RARITY_COLOR } from "../../lib/game/data/items";
 import { spriteUrl } from "../../lib/game/sprites";
@@ -28,6 +28,7 @@ const emit = defineEmits<{
   attack: [];
   fight: [];
   quick: [index: number];
+  walk: [dx: number, dy: number];
 }>();
 
 const MAX_LENGTH = 280;
@@ -43,10 +44,23 @@ function submit() {
   draft.value = "";
 }
 
+const ARROWS: Record<string, [number, number]> = {
+  ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0],
+};
+
 function onKey(e: KeyboardEvent) {
   if (e.key === "Enter" && !e.shiftKey) {
     e.preventDefault();
     submit();
+    return;
+  }
+  // Champ vide : les flèches quittent la discussion et font avancer le héros
+  // (on arrive souvent ici en fonçant sur un PNJ, les doigts encore sur les flèches)
+  const dir = ARROWS[e.key];
+  if (dir && !draft.value) {
+    e.preventDefault();
+    e.stopPropagation();
+    emit("walk", dir[0], dir[1]);
   }
 }
 
@@ -88,7 +102,7 @@ const portrait = (id: string) => spriteUrl(id === "morgrath" ? "liche" : id, 64)
         <template v-if="line.who === 'system'">{{ line.text }}</template>
         <template v-else>
           <strong>{{ line.who === "hero" ? "Toi" : npc.name }}</strong>
-          {{ line.text }}<span v-if="line.streaming" class="caret" aria-hidden="true">▍</span>
+          <template v-for="(part, i) in splitStageDirections(line.text)" :key="i"><em v-if="part.stage" class="stage">{{ part.text }}</em><template v-else>{{ part.text }}</template></template><span v-if="line.streaming" class="caret" aria-hidden="true">▍</span>
         </template>
       </p>
     </div>
@@ -145,7 +159,7 @@ const portrait = (id: string) => spriteUrl(id === "morgrath" ? "liche" : id, 64)
         v-model="draft"
         rows="2"
         :maxlength="MAX_LENGTH"
-        :placeholder="canTalk ? npc.placeholder : `${npc.name} n'a plus rien à te dire.`"
+        :placeholder="canTalk ? `${npc.placeholder} (Échap ou flèches : partir)` : `${npc.name} n'a plus rien à te dire.`"
         :disabled="!canTalk"
         @keydown="onKey"
       ></textarea>
@@ -218,6 +232,9 @@ const portrait = (id: string) => spriteUrl(id === "morgrath" ? "liche" : id, 64)
 }
 .line.hero strong {
   color: #49c0b2;
+}
+.line .stage {
+  color: #b8b0d0;
 }
 .line.system {
   padding: 4px 8px;

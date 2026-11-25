@@ -1,15 +1,15 @@
 <script setup lang="ts">
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, shallowRef } from "vue";
 import {
-  act, applyNpcAction, BRUTUS_TOLL, buy, canTalk, createGame, heroStats, INVENTORY_SIZE, npcAt, npcMood,
-  payBrutus, score, sell, sellPrice, shopPrice, summarize, xpToNext,
+  act, applyNpcAction, BRUTUS_TOLL, buy, canTalk, createGame, deserialize, heroStats, inDanger, INVENTORY_SIZE, npcAt, npcMood,
+  pathTo, payBrutus, score, sell, sellPrice, serialize, shopPrice, summarize, xpToNext,
   type Command, type GameState, type NpcAction,
 } from "../../lib/game/engine";
-import { Renderer, VIEW_H, VIEW_W } from "../../lib/game/renderer";
+import { Renderer, TILE, VIEW_H, VIEW_W, type MinimapMode } from "../../lib/game/renderer";
 import { spriteUrl } from "../../lib/game/sprites";
 import { isEquipment, itemDef, RARITY_COLOR, RARITY_LABEL, SPECIAL_LABEL, type ItemDef, type Slot } from "../../lib/game/data/items";
 import { FLOORS, NPCS, type NpcId } from "../../lib/game/data/world";
-import { fetchRiddle, streamTalk, type DialogLine, type TalkHistoryItem } from "../../lib/game/talk";
+import { closeCutLine, fetchRiddle, streamTalk, type DialogLine, type TalkHistoryItem } from "../../lib/game/talk";
 import NpcDialog from "./NpcDialog.vue";
 
 // --- État -------------------------------------------------------------------------
@@ -28,9 +28,14 @@ const banner = ref<{ title: string; text: string; key: number } | null>(null);
 const talking = ref<NpcId | null>(null);
 const conversations = reactive<Partial<Record<NpcId, DialogLine[]>>>({});
 const busy = ref(false);
+const viewSize = ref<[number, number]>([VIEW_W, VIEW_H]);
+const storedMinimap = readStorage("donjon:minimap");
+const minimap = ref<MinimapMode>(storedMinimap === "grande" || storedMinimap === "off" ? storedMinimap : "petite");
+const saved = ref<{ floor: number; level: number; name: string } | null>(null);
 let renderer: Renderer | null = null;
 let controller: AbortController | null = null;
 let lineId = 1;
+let walkTimer: ReturnType<typeof setTimeout> | null = null;
 
 function readStorage(key: string): string | null {
   try {
@@ -47,11 +52,44 @@ function writeStorage(key: string, value: string) {
   }
 }
 
+// --- Sauvegarde : la partie survit à un rechargement ou à un onglet fermé ------------------
+const SAVE_KEY = "donjon:partie";
+
+function saveGame() {
+  const s = game.value;
+  if (!s) return;
+  if (s.status !== "playing") {
+    removeStorage(SAVE_KEY);
+    return;
+  }
+  writeStorage(SAVE_KEY, JSON.stringify({ state: serialize(s), conversations, lineId }));
+}
+
+function readSave(): { state: GameState; conversations: Partial<Record<NpcId, DialogLine[]>>; lineId: number } | null {
+  try {
+    const raw = JSON.parse(readStorage(SAVE_KEY) ?? "null") as { state: string; conversations?: Partial<Record<NpcId, DialogLine[]>>; lineId?: number } | null;
+    const state = deserialize(raw?.state ?? null);
+    if (!raw || !state) return null;
+    return { state, conversations: raw.conversations ?? {}, lineId: raw.lineId ?? 1 };
+  } catch {
+    return null;
+  }
+}
+
+function removeStorage(key: string) {
+  try {
+    localStorage.removeItem(key);
+  } catch {
+    // rien à faire
+  }
+}
+
 function refresh() {
   const s = game.value;
   if (!s) return;
   renderer?.takeFx(s);
   tick.value++;
+  saveGame();
   if (s.floor > bestFloor.value) {
     bestFloor.value = s.floor;
     writeStorage("donjon:best", String(s.floor));
@@ -76,14 +114,36 @@ function start() {
   heroName.value = name;
   writeStorage("donjon:name", name);
   const s = createGame(Math.floor(Math.random() * 2 ** 31), name);
+  load(s, {});
+  showBanner();
+}
+
+/** Reprend la partie sauvegardée là où on l'avait laissée. */
+function resume() {
+  const save = readSave();
+  if (!save) {
+    saved.value = null;
+    return;
+  }
+  lineId = Math.max(lineId, save.lineId);
+  load(save.state, save.conversations);
+  showBanner();
+}
+
+function load(s: GameState, convs: Partial<Record<NpcId, DialogLine[]>>) {
+  stopWalk();
   game.value = s;
   renderer?.setState(s);
   for (const k of Object.keys(conversations) as NpcId[]) delete conversations[k];
+  for (const [k, lines] of Object.entries(convs) as [NpcId, DialogLine[]][]) {
+    // Une réplique en cours au moment de la sauvegarde ne reprendra pas : on la ferme
+    conversations[k] = lines.map((l) => ({ ...l, streaming: false, text: l.streaming ? closeCutLine(l.text) || "…" : l.text }));
+  }
   talking.value = null;
   selected.value = null;
   jumpMode.value = false;
+  saved.value = null;
   refresh();
-  showBanner();
   nextTick(() => root.value?.focus());
 }
 
@@ -145,6 +205,7 @@ function bonusLine(def: ItemDef): string {
 function run(cmd: Command) {
   const s = game.value;
   if (!s || s.status !== "playing" || talking.value) return;
+  stopWalk();
   const before = s.floor;
   const result = act(s, cmd);
   if (cmd.type === "use" || cmd.type === "drop") selected.value = null;
@@ -193,6 +254,7 @@ const NUMPAD_DIRS: Record<string, [number, number]> = {
 function onKey(e: KeyboardEvent) {
   const target = e.target as HTMLElement;
   if (target.closest("input, textarea")) return;
+  stopWalk();
   // Entrée ou Espace sur un bouton du panneau : on laisse le bouton faire son travail
   if (target instanceof HTMLButtonElement && (e.key === "Enter" || e.key === " ")) return;
   if (talking.value) {
@@ -226,6 +288,9 @@ function onKey(e: KeyboardEvent) {
   } else if (e.key.toLowerCase() === "f") {
     e.preventDefault();
     toggleFullscreen();
+  } else if (e.key.toLowerCase() === "m") {
+    e.preventDefault();
+    cycleMinimap();
   } else if (e.key === "Escape") {
     jumpMode.value = false;
     selected.value = null;
@@ -250,24 +315,82 @@ async function toggleFullscreen() {
     fullscreen.value = false;
     if (document.fullscreenElement) await document.exitFullscreen().catch(() => {});
   }
+  fitView();
   el.focus();
 }
 
 function onFullscreenChange() {
   // Échap ou geste du système : on sort aussi du mode CSS
   if (!document.fullscreenElement) fullscreen.value = false;
+  fitView();
 }
 
-/** Clic ou tap sur le donjon : un pas (ou un saut) dans cette direction. */
+/**
+ * Grand écran : on garde des cases d'environ 40 px et on en affiche davantage,
+ * pour voir plus loin (au lieu d'afficher les mêmes cases en plus gros).
+ */
+function fitView() {
+  nextTick(() => {
+    if (!renderer) return;
+    let w = VIEW_W;
+    let h = VIEW_H;
+    if (fullscreen.value) {
+      const narrow = window.innerWidth <= 960;
+      const availW = narrow ? window.innerWidth - 20 : window.innerWidth - 340 - 48;
+      const availH = window.innerHeight - 90;
+      const cell = Math.max(TILE, Math.min(48, Math.floor(availH / VIEW_H)));
+      w = Math.floor(availW / cell);
+      h = Math.floor(availH / cell);
+    }
+    renderer.setView(w, h);
+    viewSize.value = [renderer.viewW, renderer.viewH];
+  });
+}
+
+const MINIMAP_NEXT: Record<MinimapMode, MinimapMode> = { petite: "grande", grande: "off", off: "petite" };
+function cycleMinimap() {
+  minimap.value = MINIMAP_NEXT[minimap.value];
+  if (renderer) renderer.minimap = minimap.value;
+  writeStorage("donjon:minimap", minimap.value);
+}
+
+/**
+ * Clic ou tap sur le donjon. Case voisine (ou mode saut) : un pas ou un saut dans cette direction.
+ * Case connue plus loin : le héros y va tout seul, pas à pas, et s'arrête dès qu'un ennemi
+ * apparaît, qu'il prend un coup ou qu'un personnage lui parle. Case inconnue : un pas vers elle.
+ */
 function onCanvasClick(e: MouseEvent) {
   root.value?.focus();
   const s = game.value;
   const tile = renderer?.tileAt(e.clientX, e.clientY);
-  if (!s || !tile || s.status !== "playing") return;
+  if (!s || !tile || s.status !== "playing" || talking.value) return;
+  stopWalk();
   const dx = Math.sign(tile.x - s.hero.x);
   const dy = Math.sign(tile.y - s.hero.y);
-  if (!dx && !dy) interact();
+  if (!dx && !dy) return interact();
+  const far = Math.max(Math.abs(tile.x - s.hero.x), Math.abs(tile.y - s.hero.y)) > 1;
+  const path = far && !jumpMode.value ? pathTo(s, tile) : [];
+  if (path.length) walk(path);
   else move(dx, dy);
+}
+
+function walk(path: [number, number][]) {
+  const s = game.value;
+  const step = path.shift();
+  if (!s || !step || s.status !== "playing" || talking.value) return stopWalk();
+  const hp = s.hero.hp;
+  const floor = s.floor;
+  const from = `${s.hero.x},${s.hero.y}`;
+  run({ type: "move", dx: step[0], dy: step[1] });
+  // On s'arrête si le pas n'a pas eu lieu, si on a pris un coup, changé d'étage ou repéré un danger
+  const moved = `${s.hero.x},${s.hero.y}` !== from;
+  if (!path.length || !moved || s.hero.hp < hp || s.floor !== floor || talking.value || inDanger(s)) return;
+  walkTimer = setTimeout(() => walk(path), 90);
+}
+
+function stopWalk() {
+  if (walkTimer) clearTimeout(walkTimer);
+  walkTimer = null;
 }
 
 const PAD: [number, number, string][] = [
@@ -331,6 +454,12 @@ function closeTalk() {
   nextTick(() => root.value?.focus());
 }
 
+/** Flèche dans un champ de discussion vide : on quitte la discussion et on fait le pas. */
+function walkAway(dx: number, dy: number) {
+  closeTalk();
+  move(dx, dy);
+}
+
 function npcSays(id: NpcId, action: NpcAction) {
   const s = game.value!;
   const message = applyNpcAction(s, id, action);
@@ -363,7 +492,7 @@ async function say(text: string) {
   controller = new AbortController();
 
   try {
-    await streamTalk(
+    const result = await streamTalk(
       { npc: id, message: text, history, game: summarize(s), mood: npcMood(s, id) },
       {
         onDelta: (t) => (reply.text += t),
@@ -371,6 +500,8 @@ async function say(text: string) {
         signal: controller.signal,
       },
     );
+    // Réplique coupée par le serveur : on ferme la phrase proprement plutôt que de laisser « Quant à le »
+    if (result.cut) reply.text = closeCutLine(reply.text);
     if (!reply.text.trim()) reply.text = "…";
   } catch (err) {
     if (controller.signal.aborted) return;
@@ -451,16 +582,30 @@ function onFight() {
 
 onMounted(() => {
   renderer = new Renderer(canvas.value!);
+  renderer.minimap = minimap.value;
   renderer.start();
   document.addEventListener("fullscreenchange", onFullscreenChange);
+  window.addEventListener("resize", onResize);
+  const save = readSave();
+  if (save) saved.value = { floor: save.state.floor, level: save.state.hero.level, name: save.state.hero.name };
 });
 
+function onResize() {
+  if (fullscreen.value) fitView();
+}
+
 onBeforeUnmount(() => {
+  stopWalk();
+  saveGame();
+  window.removeEventListener("resize", onResize);
   renderer?.stop();
   controller?.abort();
   document.removeEventListener("fullscreenchange", onFullscreenChange);
   if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
 });
+
+/** Les dernières lignes du journal, affichées sur l'écran de jeu (utile sur mobile, où le journal est loin). */
+const ticker = computed(() => view.value?.log.slice(0, 2) ?? []);
 
 const hpPercent = computed(() => (view.value ? (view.value.hero.hp / view.value.stats.maxHp) * 100 : 0));
 const xpPercent = computed(() => (view.value ? (view.value.hero.xp / view.value.xpNext) * 100 : 0));
@@ -499,15 +644,19 @@ const toneClass = (tone: string) => `tone-${tone}`;
       <div class="screen">
         <canvas
           ref="canvas"
-          :style="{ aspectRatio: `${VIEW_W} / ${VIEW_H}` }"
+          :style="{ aspectRatio: `${viewSize[0]} / ${viewSize[1]}` }"
           aria-label="Le donjon vu de dessus"
           role="img"
           @click="onCanvasClick"
         ></canvas>
 
-        <div v-if="banner" :key="banner.key" class="banner" aria-live="polite">
+        <div v-if="banner" :key="banner.key" class="banner" aria-live="polite" @click="banner = null">
           <strong>{{ banner.title }}</strong>
           <span>{{ banner.text }}</span>
+        </div>
+
+        <div v-if="view && view.status === 'playing' && !banner" class="ticker" aria-hidden="true">
+          <p v-for="entry in ticker" :key="entry.id" :class="toneClass(entry.tone)">{{ entry.text }}</p>
         </div>
 
         <div v-if="view?.boss" class="bossbar">
@@ -527,6 +676,10 @@ const toneClass = (tone: string) => `tone-${tone}`;
               <button type="submit" class="go">Entrer dans le donjon</button>
             </div>
           </form>
+          <div v-if="saved" class="resume">
+            <button type="button" class="go" @click="resume">Reprendre la partie</button>
+            <span>{{ saved.name }}, niveau {{ saved.level }}, étage {{ saved.floor }}</span>
+          </div>
           <p v-if="bestFloor" class="best">Ton record : étage {{ bestFloor }}<template v-if="bestScore"> · {{ bestScore }} points</template></p>
         </div>
 
@@ -597,6 +750,7 @@ const toneClass = (tone: string) => `tone-${tone}`;
         @attack="onAttack"
         @fight="onFight"
         @quick="onQuick"
+        @walk="walkAway"
       />
 
       <template v-else-if="view">
@@ -676,6 +830,8 @@ const toneClass = (tone: string) => `tone-${tone}`;
             <li><kbd>Entrée</kbd> <kbd>E</kbd> : descendre, parler</li>
             <li><kbd>1</kbd>–<kbd>9</kbd> : objet du sac · <kbd>R</kbd> : attendre</li>
             <li>Diagonale depuis un angle de mur : attaque sournoise</li>
+            <li><kbd>M</kbd> : minicarte (petite, grande, masquée)</li>
+            <li>Clic sur une case connue : y aller</li>
             <li><kbd>F</kbd> : grand écran</li>
           </ul>
         </details>
@@ -690,8 +846,10 @@ const toneClass = (tone: string) => `tone-${tone}`;
           <li><kbd>Espace</kbd> puis une direction (ou <kbd>Maj</kbd> + direction) : sauter 2 cases, même par-dessus un ennemi, qui reste étourdi.</li>
           <li><kbd>Entrée</kbd> ou <kbd>E</kbd> : descendre l'escalier, parler à un personnage.</li>
           <li><kbd>1</kbd>–<kbd>9</kbd> : utiliser un objet du sac. <kbd>R</kbd> ou <kbd>.</kbd> : attendre.</li>
-          <li><kbd>F</kbd> : grand écran.</li>
-          <li>Les personnages marqués d'un <strong class="bang">!</strong> te répondent vraiment. Claude, le guide, t'attend à l'entrée.</li>
+          <li>Clique sur une case déjà vue : le héros y va tout seul et s'arrête au moindre danger.</li>
+          <li><kbd>M</kbd> : minicarte. <kbd>F</kbd> : grand écran, pour voir plus loin.</li>
+          <li>Les personnages avec une bulle <strong class="bang">!</strong> te répondent vraiment. Claude, le guide, t'attend à l'entrée.</li>
+          <li>La partie est sauvegardée à chaque tour : tu peux la reprendre plus tard.</li>
         </ul>
       </section>
     </aside>
@@ -830,7 +988,7 @@ canvas {
   background: rgba(10, 9, 16, 0.92);
   text-align: center;
   animation: banner 3s ease forwards;
-  pointer-events: none;
+  cursor: pointer;
 }
 .banner strong {
   display: block;
@@ -846,6 +1004,43 @@ canvas {
   0% { opacity: 0; transform: translate(-50%, -8px); }
   10%, 80% { opacity: 1; transform: translate(-50%, 0); }
   100% { opacity: 0; }
+}
+/* Les deux dernières lignes du journal, sur l'écran : surtout pour le mobile */
+.ticker {
+  display: none;
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 6px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  background: rgba(7, 6, 11, 0.78);
+  pointer-events: none;
+}
+.ticker p {
+  margin: 0;
+  font-size: 12px;
+  line-height: 1.35;
+  color: #c9d1d9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ticker p + p { opacity: 0.7; }
+.resume {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+}
+.resume .go {
+  border-color: #49c0b2;
+  background: #2b8a7e;
+}
+.resume span {
+  font-size: 13px;
+  color: #9aa5b1;
 }
 .bossbar {
   position: absolute;
@@ -1229,6 +1424,14 @@ kbd {
     grid-template-columns: minmax(0, 1fr);
     padding: 10px;
   }
+  .ticker { display: block; }
+  /* Le bandeau d'étage ne doit pas masquer tout le petit écran */
+  .banner {
+    top: 8px;
+    padding: 6px 10px;
+  }
+  .banner strong { font-size: 16px; }
+  .banner span { font-size: 12px; }
   .game.full canvas {
     width: 100%;
     height: auto;

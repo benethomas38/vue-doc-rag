@@ -34,6 +34,8 @@ export interface EnemyDef {
   power?: Power;
   range?: number;       // portée des tirs
   projectile?: string;  // couleur du tir
+  fem?: boolean;        // nom féminin : « la gelée verte est vaincue »
+  proper?: boolean;     // nom propre : pas d'article (« Brutus »)
   description: string;
 }
 
@@ -44,11 +46,11 @@ export const ENEMIES: EnemyDef[] = [
     behavior: "melee", speed: 1, description: "Gros comme un chien, poli comme un rat.",
   },
   {
-    id: "gelee", name: "Gelée verte", hp: 16, atk: 4, def: 1, agi: 0, xp: 6, gold: [0, 5], floors: [1, 2],
+    id: "gelee", fem: true, name: "Gelée verte", hp: 16, atk: 4, def: 1, agi: 0, xp: 6, gold: [0, 5], floors: [1, 2],
     behavior: "melee", speed: 0.5, power: "poison", description: "Lente, collante, et franchement toxique.",
   },
   {
-    id: "chauve_souris", name: "Chauve-souris", hp: 6, atk: 3, def: 0, agi: 30, xp: 4, gold: [0, 0], floors: [1, 2],
+    id: "chauve_souris", fem: true, name: "Chauve-souris", hp: 6, atk: 3, def: 0, agi: 30, xp: 4, gold: [0, 0], floors: [1, 2],
     behavior: "erratic", speed: 2, description: "Rapide et imprévisible. Agaçante surtout.",
   },
   {
@@ -70,7 +72,7 @@ export const ENEMIES: EnemyDef[] = [
     behavior: "melee", speed: 0.5, power: "poison", description: "Lent. Très lent. Mais il ne s'arrête jamais.",
   },
   {
-    id: "vampire", name: "Chauve-souris vampire", hp: 12, atk: 4, def: 0, agi: 30, xp: 11, gold: [0, 4], floors: [2, 3, 4],
+    id: "vampire", fem: true, name: "Chauve-souris vampire", hp: 12, atk: 4, def: 0, agi: 30, xp: 11, gold: [0, 4], floors: [2, 3, 4],
     behavior: "erratic", speed: 2, power: "drain", description: "Elle boit ton sang pour reprendre des forces.",
   },
 
@@ -84,7 +86,7 @@ export const ENEMIES: EnemyDef[] = [
     behavior: "melee", speed: 0.5, description: "Une montagne de métal. Contourne-le, ou saute par-dessus.",
   },
   {
-    id: "salamandre", name: "Salamandre", hp: 22, atk: 6, def: 2, agi: 15, xp: 18, gold: [5, 12], floors: [3, 4],
+    id: "salamandre", fem: true, name: "Salamandre", hp: 22, atk: 6, def: 2, agi: 15, xp: 18, gold: [5, 12], floors: [3, 4],
     behavior: "ranged", speed: 1, range: 5, projectile: "#ff7a1a", power: "brulure", description: "Crache du feu, puis rit. Elle trouve ça drôle.",
   },
   {
@@ -114,17 +116,43 @@ export const ENEMIES: EnemyDef[] = [
 
   // --- Hors bestiaire : PNJ qui deviennent hostiles, boss --------------------------------
   {
-    id: "brutus", name: "Brutus", hp: 55, atk: 9, def: 5, agi: 5, xp: 60, gold: [40, 60], floors: [],
+    id: "brutus", proper: true, name: "Brutus", hp: 55, atk: 9, def: 5, agi: 5, xp: 60, gold: [40, 60], floors: [],
     behavior: "melee", speed: 1, description: "Le garde de l'escalier. Tu l'as vexé.",
   },
   {
-    id: "liche", name: "Morgrath, la liche", hp: 120, atk: 12, def: 5, agi: 10, xp: 0, gold: [0, 0], floors: [],
+    id: "liche", proper: true, name: "Morgrath, la liche", hp: 120, atk: 12, def: 5, agi: 10, xp: 0, gold: [0, 0], floors: [],
     behavior: "boss", speed: 1, range: 7, projectile: "#7cff6b", power: "invoque",
     description: "Le maître du donjon. Il t'observe depuis le début.",
   },
 ];
 
 export const ENEMY_BY_ID = new Map(ENEMIES.map((e) => [e.id, e]));
+
+/**
+ * Le nom d'un ennemi avec le bon article, pour le journal :
+ * the(def, nom) → « le rat géant », « la gelée verte », « l'archer squelette », « Brutus » ;
+ * of(def, nom) → « du rat géant », « de la gelée verte », « de l'archer squelette », « de Brutus ».
+ */
+export function the(def: EnemyDef, name = def.name): string {
+  if (def.proper) return name;
+  const lower = name.charAt(0).toLowerCase() + name.slice(1);
+  if (/^[aeiouyàâéèêëîïôûh]/i.test(lower)) return `l'${lower}`;
+  return `${def.fem ? "la" : "le"} ${lower}`;
+}
+
+export function of(def: EnemyDef, name = def.name): string {
+  const base = the(def, name);
+  if (def.proper || base.startsWith("l'") || base.startsWith("la ")) return `de ${base}`;
+  return `du ${base.slice(3)}`;
+}
+
+/** Accord au féminin : agree(def, "vaincu") → « vaincue » pour la gelée. */
+export const agree = (def: EnemyDef, word: string) => (def.fem ? `${word}e` : word);
+
+/** Pronom sujet : « il » ou « elle ». */
+export const pronoun = (def: EnemyDef) => (def.fem ? "elle" : "il");
+
+export const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 export function enemyDef(id: string): EnemyDef {
   const def = ENEMY_BY_ID.get(id);
