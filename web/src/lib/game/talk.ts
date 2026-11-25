@@ -2,7 +2,7 @@
  * Côté client des dialogues : envoie la réplique du joueur et lit la réponse du PNJ
  * en streaming (Server-Sent Events), avec le même parseur que le chat du RAG.
  */
-import { parseSSE } from "../sse";
+import { parseSSE } from "../../../../shared/sse";
 import type { GameSummary, NpcAction } from "./engine";
 import type { NpcId } from "./data/world";
 import type { ItemDef } from "./data/items";
