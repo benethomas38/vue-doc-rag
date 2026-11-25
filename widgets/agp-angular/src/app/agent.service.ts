@@ -65,15 +65,18 @@ export class AgentService {
 
       const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
       let buffer = "";
+      let finished = false; // le serveur termine toujours par "done" : sans lui, la réponse a été coupée
       for (;;) {
         const { value, done } = await reader.read();
         if (done) break;
         const parsed = parseSSE(buffer + value);
         buffer = parsed.rest;
         for (const { event, data } of parsed.events) {
+          if (event === "done") finished = true;
           this.state.update((turns) => applyEvent(turns, turnId, event, data));
         }
       }
+      if (!finished) throw new Error("La connexion a été coupée avant la fin de la réponse. Réessaie dans un instant.");
       this.state.update((turns) => finishTurn(turns, turnId));
     } catch (err) {
       if (this.controller?.signal.aborted) return;

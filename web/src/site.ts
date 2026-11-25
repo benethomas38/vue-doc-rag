@@ -11,21 +11,21 @@ export const site = {
     "Développeur front-end avec 5 ans d'expérience, spécialisé en Vue.js (2.7 et 3) et TypeScript, " +
     "avec une pratique d'Angular et de React. J'interviens sur le développement et l'évolution " +
     "d'applications métier, ainsi que sur la réduction de la dette technique. " +
-    "Je conçois aussi des interfaces qui intègrent des LLM (RAG, streaming, API Claude et OpenAI). " +
-    "Exemple en production : mon assistant documentaire sur benethomas.fr.",
+    "Je conçois aussi des interfaces qui intègrent des LLM (RAG, agents, API Claude et OpenAI). " +
+    "J'ai mis en production un assistant documentaire IA sur ce site, que vous pouvez utiliser dès maintenant.",
   // Regroupées comme sur le CV
   skills: [
     {
       title: "Code",
-      items: ["Vue 3 et Vue 2.7", "Angular", "TypeScript, JavaScript", "HTML5, CSS3 responsive", "Node.js, Express", "React"],
+      items: ["Vue 3 et Vue 2.7", "React", "Angular", "TypeScript, JavaScript", "HTML5, CSS3 responsive", "Node.js, Express"],
     },
     {
       title: "IA",
-      items: ["ChatGPT et Claude pour coder", "RAG, embeddings", "API Claude en streaming", "Maîtrise des coûts d'API"],
+      items: ["API Claude et OpenAI", "RAG, embeddings", "Agents IA (tool use)", "Maîtrise des coûts d'API", "ChatGPT et Claude pour coder"],
     },
     {
       title: "Outils",
-      items: ["Vite, Vitest", "Git, GitHub Actions", "Docker, Caddy", "VPS Linux", "Spring Boot (notions)"],
+      items: ["Vite, Vitest", "Git, GitHub Actions", "Docker, Caddy", "VPS Linux", "Web Components", "Spring Boot (notions)"],
     },
     {
       title: "Organisation",
@@ -56,7 +56,7 @@ export const site = {
   links: {
     github: "https://github.com/benethomas38",
     linkedin: "",          // ex. "https://www.linkedin.com/in/ton-profil"
-    email: "",             // ex. "contact@benethomas.fr"
+    email: "benethomasjobs@gmail.com",
     cv: "",                // ex. "/cv.pdf" après avoir placé le fichier dans web/public/
   },
 };

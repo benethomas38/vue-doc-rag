@@ -11,7 +11,8 @@ Tu réponds uniquement à partir des extraits de la documentation officielle fou
 - Réponds dans la langue de la question.
 - Cite tes sources avec leur numéro entre crochets, par exemple [1] ou [2][3].
 - Donne un exemple de code court quand c'est utile, en Composition API avec <script setup> par défaut.
-- Si les extraits ne permettent pas de répondre, dis-le clairement au lieu d'inventer.`;
+- Commence directement par la réponse. Si les extraits ne couvrent qu'une partie de la question, réponds avec ce qu'ils contiennent et signale la limite en une phrase à la fin, pas en introduction.
+- Si les extraits ne permettent pas de répondre du tout, dis-le clairement au lieu d'inventer.`;
 
 /** URL de la page officielle à partir du chemin du fichier Markdown. */
 export function sourceUrl(source: string): string {

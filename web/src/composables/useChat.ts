@@ -41,6 +41,7 @@ export function useChat() {
 
       const reader = res.body.pipeThrough(new TextDecoderStream()).getReader();
       let buffer = "";
+      let finished = false; // le serveur termine toujours par "done" : sans lui, la réponse a été coupée
       for (;;) {
         const { value, done } = await reader.read();
         if (done) break;
@@ -51,10 +52,13 @@ export function useChat() {
           const d = data as { text?: string; sources?: Source[]; message?: string };
           if (event === "sources") msg.allSources = d.sources ?? [];
           else if (event === "delta") msg.text += d.text ?? "";
-          else if (event === "done") msg.sources = d.sources ?? [];
-          else if (event === "error") throw new Error(d.message);
+          else if (event === "done") {
+            msg.sources = d.sources ?? [];
+            finished = true;
+          } else if (event === "error") throw new Error(d.message);
         }
       }
+      if (!finished) throw new Error("La connexion a été coupée avant la fin de la réponse. Réessaie dans un instant.");
       msg.status = "done";
     } catch (err) {
       msg.status = "error";

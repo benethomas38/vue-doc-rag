@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import ProjectCard from "../components/ProjectCard.vue";
+import ProjectList from "../components/ProjectList.vue";
 import { site } from "../site";
 import { projects } from "../projects";
+
+const demoCount = projects.filter((p) => p.demo).length;
 </script>
 
 <template>
@@ -15,9 +17,9 @@ import { projects } from "../projects";
       <p class="intro">{{ site.intro }}</p>
       <p class="status">{{ site.status }}</p>
       <p class="cta">
-        <RouterLink to="/projets/vue-doc-rag" class="btn btn--primary">Tester mon assistant IA</RouterLink>
+        <a href="#projets" class="btn btn--primary">Voir mes {{ demoCount }} démos en ligne</a>
+        <a v-if="site.links.email" :href="`mailto:${site.links.email}`" class="btn">Me contacter</a>
         <a v-if="site.links.cv" :href="site.links.cv" class="btn" download>Télécharger mon CV</a>
-        <a v-if="site.links.email" :href="`mailto:${site.links.email}`" class="btn">M'écrire</a>
       </p>
     </div>
     <!-- Les deux blocs de couleur reprennent le bandeau et la colonne du CV -->
@@ -29,8 +31,16 @@ import { projects } from "../projects";
     </div>
   </section>
 
+  <section id="projets" class="section" aria-labelledby="projects-title">
+    <div class="section__head">
+      <h2 id="projects-title">Projets</h2>
+      <p>Des démos en ligne, à tester tout de suite. Le code de chacune est public sur GitHub.</p>
+    </div>
+    <ProjectList />
+  </section>
+
   <section class="section" aria-labelledby="skills-title">
-    <h2 id="skills-title">Ce que je sais faire</h2>
+    <h2 id="skills-title">Compétences</h2>
     <div class="skills">
       <div v-for="g in site.skills" :key="g.title" class="skills__col">
         <h3>{{ g.title }}</h3>
@@ -41,10 +51,6 @@ import { projects } from "../projects";
     </div>
   </section>
 
-  <section class="section" aria-labelledby="projects-title">
-    <h2 id="projects-title">Projets</h2>
-    <ProjectCard v-for="p in projects" :key="p.slug" :project="p" />
-  </section>
 
   <section class="section" aria-labelledby="offscreen-title">
     <h2 id="offscreen-title">Hors de l'écran</h2>
@@ -61,15 +67,15 @@ import { projects } from "../projects";
 .hero {
   display: grid;
   grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr);
-  gap: 48px;
+  gap: 40px;
   align-items: center;
-  padding: 28px 0 56px;
+  padding: 24px 0 8px;
 }
 .name {
   margin: 0;
   display: flex;
   flex-direction: column;
-  font-size: clamp(64px, 12vw, 148px);
+  font-size: clamp(52px, 8vw, 96px);
   font-stretch: 62%;
   font-weight: 900;
   line-height: 0.86;
@@ -80,13 +86,13 @@ import { projects } from "../projects";
   color: var(--blue);
 }
 .role {
-  margin: 20px 0 0;
+  margin: 14px 0 0;
   font-size: 22px;
   font-weight: 700;
 }
 .intro {
   margin: 12px 0 0;
-  max-width: 56ch;
+  max-width: 66ch;
 }
 .status {
   margin: 12px 0 0;
@@ -95,7 +101,7 @@ import { projects } from "../projects";
   font-weight: 600;
 }
 .cta {
-  margin: 28px 0 0;
+  margin: 22px 0 0;
   display: flex;
   flex-wrap: wrap;
   gap: 12px;
@@ -104,7 +110,7 @@ import { projects } from "../projects";
 .hero__photo {
   position: relative;
   aspect-ratio: 1;
-  max-width: 380px;
+  max-width: 280px;
   width: 100%;
   justify-self: end;
 }
@@ -133,11 +139,30 @@ import { projects } from "../projects";
 }
 
 .section {
-  padding: 56px 0 8px;
+  padding: 48px 0 8px;
 }
-.section > h2 {
-  margin: 0 0 28px;
-  font-size: clamp(36px, 6vw, 56px);
+.section > h2,
+.section__head h2 {
+  margin: 0 0 20px;
+  font-size: clamp(36px, 6vw, 52px);
+}
+.section__head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 24px;
+  margin-bottom: 20px;
+}
+.section__head h2 {
+  margin: 0;
+}
+.section__head p {
+  margin: 0;
+  color: var(--muted);
+}
+#projets {
+  scroll-margin-top: 16px;
 }
 
 .skills {
@@ -153,8 +178,8 @@ import { projects } from "../projects";
   border-left: 1px solid var(--border);
 }
 .skills h3 {
-  margin: 0 0 12px;
-  font-size: 26px;
+  margin: 0 0 8px;
+  font-size: 22px;
   color: var(--blue-deep);
 }
 .skills ul {
@@ -163,7 +188,7 @@ import { projects } from "../projects";
   list-style: none;
 }
 .skills li {
-  padding: 4px 0;
+  padding: 2px 0;
 }
 
 .offscreen {
